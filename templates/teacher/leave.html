@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}Leave Application — IntelliCampus{% endblock %}
+{% block page_title %}Leave Application{% endblock %}
+{% block content %}
+<div class="grid-2">
+  <div class="card fade-in">
+    <div class="card-header"><span class="card-title"><i class="fas fa-calendar-xmark" style="color:var(--purple)"></i> &nbsp;Apply for Leave</span></div>
+    <div class="card-body">
+      <form method="POST">
+        <div class="form-group mb-2"><label class="form-label">From Date *</label><input type="date" name="from_date" class="form-control" required></div>
+        <div class="form-group mb-2"><label class="form-label">To Date *</label><input type="date" name="to_date" class="form-control" required></div>
+        <div class="form-group mb-3"><label class="form-label">Reason *</label><textarea name="reason" class="form-control" rows="4" required placeholder="Please state the reason for leave..."></textarea></div>
+        <button type="submit" class="btn btn-primary w-100">Submit Application</button>
+      </form>
+    </div>
+  </div>
+  <div class="card fade-in">
+    <div class="card-header"><span class="card-title">My Leave History</span></div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>From</th><th>To</th><th>Reason</th><th>Status</th></tr></thead>
+        <tbody>
+        {% for l in leaves %}
+        <tr>
+          <td>{{ l.from_date }}</td><td>{{ l.to_date }}</td>
+          <td class="text-small text-muted">{{ l.reason[:40] }}...</td>
+          <td><span class="badge {% if l.status=='Approved' %}badge-green{% elif l.status=='Rejected' %}badge-red{% else %}badge-amber{% endif %}">{{ l.status }}</span></td>
+        </tr>
+        {% else %}
+        <tr><td colspan="4" class="text-center text-muted" style="padding:24px">No applications yet</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

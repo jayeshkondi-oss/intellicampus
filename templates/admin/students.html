@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% block title %}Students — IntelliCampus{% endblock %}
+{% block page_title %}Student Management{% endblock %}
+{% block page_subtitle %}Browse, filter and manage all students{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div class="page-header-left">
+    <h2>All Students</h2>
+    <p>{{ students|length }} records found</p>
+  </div>
+  <a href="{{ url_for('admin.add_student') }}" class="btn btn-primary"><i class="fas fa-user-plus"></i> Add Student</a>
+</div>
+
+<!-- Filters -->
+<form method="GET" class="card mb-3" style="padding:16px 20px">
+  <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end">
+    <div class="form-group" style="flex:1;min-width:160px;margin:0">
+      <label class="form-label">Department</label>
+      <select name="dept" class="form-control">
+        <option value="">All Departments</option>
+        {% for d in depts %}<option value="{{ d.id }}" {% if filters.dept==d.id|string %}selected{% endif %}>{{ d.name }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="form-group" style="min-width:100px;margin:0">
+      <label class="form-label">Year</label>
+      <select name="year" class="form-control">
+        <option value="">All</option>
+        {% for y in [1,2,3,4] %}<option value="{{ y }}" {% if filters.year==y|string %}selected{% endif %}>Year {{ y }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="form-group" style="min-width:120px;margin:0">
+      <label class="form-label">Semester</label>
+      <select name="semester" class="form-control">
+        <option value="">All</option>
+        {% for s in range(1,9) %}<option value="{{ s }}" {% if filters.semester==s|string %}selected{% endif %}>Sem {{ s }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="form-group" style="flex:2;min-width:180px;margin:0">
+      <label class="form-label">Search</label>
+      <input type="text" name="q" class="form-control" placeholder="Name or Roll No..." value="{{ filters.q }}">
+    </div>
+    <button type="submit" class="btn btn-primary">Filter</button>
+    <a href="{{ url_for('admin.students') }}" class="btn btn-ghost">Reset</a>
+  </div>
+</form>
+
+<div class="card">
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Roll No.</th><th>Name</th><th>Department</th><th>Year/Sem</th><th>Email</th><th>Phone</th><th>Status</th><th>Actions</th></tr>
+      </thead>
+      <tbody>
+      {% for s in students %}
+      <tr>
+        <td><span class="badge badge-blue">{{ s.roll_number }}</span></td>
+        <td class="fw-600">{{ s.full_name }}</td>
+        <td>{{ s.dept_name }}</td>
+        <td>Y{{ s.year }} / Sem {{ s.semester }} <span class="badge badge-gray" style="font-size:.65rem">{{ s.section }}</span></td>
+        <td class="text-muted text-small">{{ s.email }}</td>
+        <td class="text-muted text-small">{{ s.phone or '—' }}</td>
+        <td>
+          {% if s.is_active %}
+          <span class="badge badge-green">Active</span>
+          {% else %}
+          <span class="badge badge-red">Inactive</span>
+          {% endif %}
+        </td>
+        <td>
+          <a href="{{ url_for('admin.edit_student', sid=s.sid) }}" class="btn btn-ghost btn-sm" title="Edit student">
+            <i class="fas fa-edit"></i>
+          </a>
+          <form method="POST" action="{{ url_for('admin.toggle_student', sid=s.sid) }}" style="display:inline">
+            <button type="submit" class="btn btn-ghost btn-sm" onclick="return confirm('Toggle student status?')">
+              {% if s.is_active %}<i class="fas fa-ban"></i>{% else %}<i class="fas fa-check"></i>{% endif %}
+            </button>
+          </form>
+          <form method="POST" action="{{ url_for('admin.delete_student', sid=s.sid) }}" style="display:inline">
+            <button type="submit" class="btn btn-ghost btn-sm" style="color:var(--red)" onclick="return confirm('Are you sure you want to permanently delete this student? All of their records will be lost.')" title="Delete student">
+              <i class="fas fa-trash"></i>
+            </button>
+          </form>
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="8"><div class="empty-state"><div class="empty-icon">👨‍🎓</div><h3>No students found</h3><p>Try adjusting your filters.</p></div></td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

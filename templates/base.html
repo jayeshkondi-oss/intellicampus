@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}IntelliCampus{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  {% block extra_css %}{% endblock %}
+</head>
+<body>
+
+<!-- ── Sidebar ──────────────────────────────────────────── -->
+<aside class="sidebar" id="sidebar">
+
+  <div class="sidebar-brand">
+    <a href="/" class="brand-logo">
+      <div class="brand-icon">&#127891;</div>
+      <div class="brand-text">
+        <div class="brand-name">IntelliCampus</div>
+        <div class="brand-sub">{{ college_name }}</div>
+      </div>
+    </a>
+  </div>
+
+  <div class="sidebar-user">
+    <div class="user-avatar">{{ current_user.full_name[0] }}</div>
+    <div class="user-info" style="min-width:0">
+      <div class="user-name">{{ current_user.full_name }}</div>
+      <div class="user-role">{{ current_user.role }}</div>
+    </div>
+  </div>
+
+  <nav class="sidebar-nav">
+
+    {% if current_user.role == 'admin' %}
+      <div class="nav-section"><div class="nav-section-title">Overview</div></div>
+      <a href="{{ url_for('admin.dashboard') }}" data-tooltip="Dashboard"
+         class="nav-item {% if request.endpoint=='admin.dashboard' %}active{% endif %}">
+        <i class="fas fa-grid-2 nav-icon"></i> <span>Dashboard</span>
+      </a>
+      <div class="nav-section"><div class="nav-section-title">Management</div></div>
+      <a href="{{ url_for('admin.students') }}" data-tooltip="Students"
+         class="nav-item {% if 'student' in request.endpoint %}active{% endif %}">
+        <i class="fas fa-user-graduate nav-icon"></i> <span>Students</span>
+      </a>
+      <a href="{{ url_for('admin.faculty') }}" data-tooltip="Faculty"
+         class="nav-item {% if 'faculty' in request.endpoint %}active{% endif %}">
+        <i class="fas fa-chalkboard-teacher nav-icon"></i> <span>Faculty</span>
+      </a>
+      <a href="{{ url_for('admin.timetable') }}" data-tooltip="Timetable"
+         class="nav-item {% if 'timetable' in request.endpoint %}active{% endif %}">
+        <i class="fas fa-calendar-days nav-icon"></i> <span>Timetable</span>
+      </a>
+      <div class="nav-section"><div class="nav-section-title">Financial</div></div>
+      <a href="{{ url_for('admin.fees') }}" data-tooltip="Fees"
+         class="nav-item {% if request.endpoint=='admin.fees' %}active{% endif %}">
+        <i class="fas fa-wallet nav-icon"></i> <span>Fees</span>
+      </a>
+      <div class="nav-section"><div class="nav-section-title">Reports</div></div>
+      <a href="{{ url_for('admin.attendance') }}" data-tooltip="Attendance"
+         class="nav-item {% if request.endpoint=='admin.attendance' %}active{% endif %}">
+        <i class="fas fa-chart-column nav-icon"></i> <span>Attendance</span>
+      </a>
+      <a href="{{ url_for('admin.leaves') }}" data-tooltip="Leave Requests"
+         class="nav-item {% if 'leave' in request.endpoint %}active{% endif %}">
+        <i class="fas fa-calendar-xmark nav-icon"></i> <span>Leave Requests</span>
+      </a>
+
+    {% elif current_user.role == 'teacher' %}
+      <div class="nav-section"><div class="nav-section-title">Overview</div></div>
+      <a href="{{ url_for('teacher.dashboard') }}" data-tooltip="Dashboard"
+         class="nav-item {% if request.endpoint=='teacher.dashboard' %}active{% endif %}">
+        <i class="fas fa-grid-2 nav-icon"></i> <span>Dashboard</span>
+      </a>
+      <div class="nav-section"><div class="nav-section-title">Academics</div></div>
+      <a href="{{ url_for('teacher.attendance') }}" data-tooltip="Attendance"
+         class="nav-item {% if 'attendance' in request.endpoint %}active{% endif %}">
+        <i class="fas fa-clipboard-check nav-icon"></i> <span>Attendance</span>
+      </a>
+      <a href="{{ url_for('teacher.assignments') }}" data-tooltip="Assignments"
+         class="nav-item {% if 'assignment' in request.endpoint or 'submission' in request.endpoint %}active{% endif %}">
+        <i class="fas fa-file-lines nav-icon"></i> <span>Assignments</span>
+      </a>
+      <a href="{{ url_for('teacher.exams') }}" data-tooltip="Examinations"
+         class="nav-item {% if 'exam' in request.endpoint or 'marks' in request.endpoint %}active{% endif %}">
+        <i class="fas fa-pen-to-square nav-icon"></i> <span>Examinations</span>
+      </a>
+      <a href="{{ url_for('teacher.upload_pyq') }}" data-tooltip="Upload PYQ"
+         class="nav-item {% if 'pyq' in request.endpoint %}active{% endif %}">
+        <i class="fas fa-file-arrow-up nav-icon"></i> <span>Upload PYQ</span>
+      </a>
+      <div class="nav-section"><div class="nav-section-title">Personal</div></div>
+      <a href="{{ url_for('teacher.profile') }}" data-tooltip="My Profile"
+         class="nav-item {% if request.endpoint=='teacher.profile' %}active{% endif %}">
+        <i class="fas fa-circle-user nav-icon"></i> <span>My Profile</span>
+      </a>
+      <a href="{{ url_for('teacher.apply_leave') }}" data-tooltip="Leave"
+         class="nav-item {% if 'leave' in request.endpoint %}active{% endif %}">
+        <i class="fas fa-umbrella-beach nav-icon"></i> <span>Leave</span>
+      </a>
+
+    {% elif current_user.role == 'student' %}
+      <div class="nav-section"><div class="nav-section-title">Overview</div></div>
+      <a href="{{ url_for('student.dashboard') }}" data-tooltip="Dashboard"
+         class="nav-item {% if request.endpoint=='student.dashboard' %}active{% endif %}">
+        <i class="fas fa-grid-2 nav-icon"></i> <span>Dashboard</span>
+      </a>
+      <div class="nav-section"><div class="nav-section-title">Academics</div></div>
+      <a href="{{ url_for('student.timetable') }}" data-tooltip="Timetable"
+         class="nav-item {% if request.endpoint=='student.timetable' %}active{% endif %}">
+        <i class="fas fa-calendar-week nav-icon"></i> <span>Timetable</span>
+      </a>
+      <a href="{{ url_for('student.subjects') }}" data-tooltip="Subjects & Results"
+         class="nav-item {% if request.endpoint=='student.subjects' %}active{% endif %}">
+        <i class="fas fa-book-open nav-icon"></i> <span>Subjects &amp; Results</span>
+      </a>
+      <a href="{{ url_for('student.attendance') }}" data-tooltip="Attendance"
+         class="nav-item {% if request.endpoint=='student.attendance' %}active{% endif %}">
+        <i class="fas fa-clipboard-check nav-icon"></i> <span>Attendance</span>
+      </a>
+      <a href="{{ url_for('student.assignments') }}" data-tooltip="Assignments"
+         class="nav-item {% if 'assignment' in request.endpoint %}active{% endif %}">
+        <i class="fas fa-file-lines nav-icon"></i> <span>Assignments</span>
+      </a>
+      <a href="{{ url_for('student.pyq') }}" data-tooltip="PYQ Papers"
+         class="nav-item {% if request.endpoint=='student.pyq' %}active{% endif %}">
+        <i class="fas fa-file-pdf nav-icon"></i> <span>PYQ Papers</span>
+      </a>
+      <div class="nav-section"><div class="nav-section-title">Financial</div></div>
+      <a href="{{ url_for('student.fees') }}" data-tooltip="Fees & Payments"
+         class="nav-item {% if request.endpoint=='student.fees' %}active{% endif %}">
+        <i class="fas fa-wallet nav-icon"></i> <span>Fees &amp; Payments</span>
+      </a>
+      <div class="nav-section"><div class="nav-section-title">Personal</div></div>
+      <a href="{{ url_for('student.profile') }}" data-tooltip="My Profile"
+         class="nav-item {% if request.endpoint=='student.profile' %}active{% endif %}">
+        <i class="fas fa-circle-user nav-icon"></i> <span>My Profile</span>
+      </a>
+    {% endif %}
+
+    <a href="{{ url_for('auth.change_password') }}" data-tooltip="Change Password"
+       class="nav-item {% if request.endpoint=='auth.change_password' %}active{% endif %}">
+      <i class="fas fa-key nav-icon"></i> <span>Change Password</span>
+    </a>
+
+  </nav>
+
+  <div class="sidebar-footer">
+    <a href="{{ url_for('auth.logout') }}" class="logout-btn" data-tooltip="Log Out">
+      <i class="fas fa-right-from-bracket"></i> <span>Log Out</span>
+    </a>
+  </div>
+</aside>
+
+<!-- ── Main Wrapper ──────────────────────────────────────── -->
+<div class="main-wrapper">
+
+  <!-- Topbar -->
+  <header class="topbar">
+    <!-- Toggle button — always visible -->
+    <button class="sidebar-toggle" id="sidebarToggle" title="Toggle sidebar">
+      <i class="fas fa-bars"></i>
+    </button>
+
+    <div class="topbar-left">
+      <div class="topbar-title">{% block page_title %}Dashboard{% endblock %}</div>
+      <div class="topbar-sub">{% block page_subtitle %}{% endblock %}</div>
+    </div>
+
+    <div class="topbar-actions">
+      <div class="topbar-search">
+        <i class="fas fa-magnifying-glass"></i>
+        <input type="text" placeholder="Search...">
+      </div>
+      <button class="topbar-btn" title="Notifications">
+        <i class="fas fa-bell"></i>
+      </button>
+      <a href="{% if current_user.role=='student' %}{{ url_for('student.profile') }}{% elif current_user.role=='teacher' %}{{ url_for('teacher.profile') }}{% else %}#{% endif %}"
+         class="topbar-btn" title="Profile">
+        <i class="fas fa-circle-user"></i>
+      </a>
+    </div>
+  </header>
+
+  <!-- Flash messages -->
+  {% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+  <div class="flash-container">
+    {% for cat, msg in messages %}
+    <div class="alert alert-{{ cat }}"><i class="fas fa-circle-info"></i> {{ msg }}</div>
+    {% endfor %}
+  </div>
+  {% endif %}
+  {% endwith %}
+
+  <!-- Content -->
+  <main class="page-content">{% block content %}{% endblock %}</main>
+
+</div>
+
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+<!-- Global Chart.js Theming -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+if(typeof Chart !== 'undefined'){
+    Chart.defaults.font.family = "'Inter', system-ui, -apple-system, sans-serif";
+    Chart.defaults.color = '#64748b'; // Tailwind slate-500
+    Chart.defaults.scale.grid.color = 'rgba(226, 232, 240, 0.4)'; // Subtle slate-200 grid
+    Chart.defaults.plugins.tooltip.backgroundColor = 'rgba(15, 23, 42, 0.9)'; // Dark indigo slate blur
+    Chart.defaults.plugins.tooltip.titleFont = { size: 14, weight: '600' };
+    Chart.defaults.plugins.tooltip.bodyFont = { size: 13 };
+    Chart.defaults.plugins.tooltip.padding = 12;
+    Chart.defaults.plugins.tooltip.cornerRadius = 8;
+    Chart.defaults.plugins.tooltip.displayColors = true;
+    Chart.defaults.plugins.tooltip.boxPadding = 4;
+}
+</script>
+{% block extra_js %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Timetable — IntelliCampus{% endblock %}
+{% block page_title %}Timetable Management{% endblock %}
+{% block page_subtitle %}View and manage all class schedules{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div class="page-header-left"><h2>Class Schedule</h2><p>{{ slots|length }} total slots</p></div>
+  <a href="{{ url_for('admin.add_timetable') }}" class="btn btn-primary"><i class="fas fa-calendar-plus"></i> Add Slot</a>
+</div>
+<div class="card">
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Day</th><th>Time</th><th>Subject</th><th>Teacher</th><th>Dept</th><th>Sem</th><th>Section</th><th>Room</th></tr></thead>
+      <tbody>
+      {% for s in slots %}
+      <tr>
+        <td><span class="badge badge-blue">{{ s.day_of_week }}</span></td>
+        <td style="font-family:'DM Mono',monospace;font-size:.75rem">{{ s.start_time.strftime('%H:%M') if s.start_time else '' }} – {{ s.end_time.strftime('%H:%M') if s.end_time else '' }}</td>
+        <td class="fw-600">{{ s.sub_name }} <span class="text-muted text-small">({{ s.sub_code }})</span></td>
+        <td>{{ s.teacher_name }}</td>
+        <td class="text-muted">{{ s.dept_name }}</td>
+        <td>Sem {{ s.semester }}</td>
+        <td>{{ s.section }}</td>
+        <td class="text-muted">{{ s.room or '—' }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="8"><div class="empty-state"><div class="empty-icon">📅</div><h3>No timetable slots yet</h3></div></td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

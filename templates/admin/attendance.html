@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block title %}Attendance — IntelliCampus{% endblock %}
+{% block page_title %}Attendance Overview{% endblock %}
+{% block page_subtitle %}Last 30 days summary &amp; defaulter list{% endblock %}
+{% block content %}
+<div class="grid-2 mb-3">
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title"><i class="fas fa-chart-bar" style="color:var(--blue)"></i> &nbsp;Subject-wise Summary (30 days)</span>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Dept</th><th>Subject</th><th>Present</th><th>Absent</th><th>Total</th><th>%</th></tr></thead>
+        <tbody>
+        {% for r in att_summary %}
+        {% set pct = ((r.present / r.total) * 100) | round(1) if r.total else 0 %}
+        <tr>
+          <td class="text-small text-muted">{{ r.dept }}</td>
+          <td class="fw-600">{{ r.sub }}</td>
+          <td><span class="badge badge-green">{{ r.present }}</span></td>
+          <td><span class="badge badge-red">{{ r.absent }}</span></td>
+          <td>{{ r.total }}</td>
+          <td>
+            <div style="display:flex;align-items:center;gap:8px">
+              <div class="progress" style="width:60px">
+                <div class="progress-bar {% if pct >= 75 %}good{% elif pct >= 60 %}warning{% else %}danger{% endif %}"
+                     style="width:{{ pct }}%"></div>
+              </div>
+              <span class="badge {% if pct >= 75 %}badge-green{% elif pct >= 60 %}badge-amber{% else %}badge-red{% endif %}">
+                {{ pct }}%
+              </span>
+            </div>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="6" class="text-center text-muted" style="padding:24px">No data yet</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">
+        <i class="fas fa-triangle-exclamation" style="color:var(--red)"></i>
+        &nbsp;Defaulters (&lt;75%)
+      </span>
+      <span class="badge badge-red">{{ defaulters|length }}</span>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Student</th><th>Roll No</th><th>Subject</th><th>Attendance</th></tr></thead>
+        <tbody>
+        {% for d in defaulters %}
+        <tr>
+          <td class="fw-600">{{ d.full_name }}</td>
+          <td><span class="badge badge-blue">{{ d.roll_number }}</span></td>
+          <td class="text-small">{{ d.sub_name }}</td>
+          <td><span class="badge badge-red">{{ d.pct }}%</span></td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="4" class="text-center" style="padding:24px">
+            <span style="font-size:1.4rem">&#127881;</span>
+            <div class="fw-600 mt-1">No defaulters!</div>
+            <div class="text-muted text-small">All students above 75%</div>
+          </td>
+        </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

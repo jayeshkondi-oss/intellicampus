@@ -1,0 +1,164 @@
+{% extends "base.html" %}
+{% block title %}PYQ Papers — IntelliCampus{% endblock %}
+{% block page_title %}PYQ Papers{% endblock %}
+{% block page_subtitle %}{{ stu.dept_name }} &middot; Semester {{ selected_sem }}{% endblock %}
+{% block content %}
+
+<div class="page-header">
+  <div class="page-header-left">
+    <h2>Previous Year Question Papers</h2>
+    <p><b>{{ stu.dept_name }}</b> &middot; Auto-fetched from muquestionpapers.com</p>
+  </div>
+  <a href="{{ source_url }}" target="_blank" class="btn btn-outline btn-sm">
+    <i class="fas fa-external-link-alt"></i> Open MU Site
+  </a>
+</div>
+
+<!-- Semester tabs -->
+<div class="card mb-3" style="padding:12px 18px">
+  <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+    <span class="text-small fw-700" style="color:var(--text-3);margin-right:4px">Semester:</span>
+    {% for s in range(1,9) %}
+    <a href="?semester={{ s }}"
+       class="btn btn-sm {% if selected_sem == s %}btn-primary{% else %}btn-ghost{% endif %}">
+      Sem {{ s }}
+    </a>
+    {% endfor %}
+  </div>
+</div>
+
+<!-- Taught subjects for this semester -->
+{% if taught_subjects %}
+<div class="section-title">
+  Subjects in Semester {{ selected_sem }}
+  <span class="badge badge-navy" style="margin-left:6px">{{ taught_subjects|length }} subjects</span>
+</div>
+<div class="grid-3 mb-3">
+  {% for sub in taught_subjects %}
+  <div class="card fade-in" style="padding:14px 16px">
+    <div style="display:flex;align-items:center;gap:10px">
+      <span class="badge badge-gold" style="font-size:.7rem">{{ sub.code }}</span>
+      <span class="fw-700 text-small" style="color:var(--text-1)">{{ sub.name }}</span>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<!-- Info bar -->
+<div class="alert alert-info mb-3" style="font-size:.8rem">
+  <i class="fas fa-circle-info"></i>
+  Papers live-fetched from
+  <a href="{{ source_url }}" target="_blank" style="color:var(--blue);font-weight:700">muquestionpapers.com</a>
+  for <b>{{ stu.dept_name }} — Semester {{ selected_sem }}</b>.
+  Click <b>Open Paper</b> to view.
+</div>
+
+<!-- Online papers -->
+{% if online_papers %}
+  {% set subjects_seen = [] %}
+  {% for p in online_papers %}
+    {% if p.subject not in subjects_seen %}{% set _ = subjects_seen.append(p.subject) %}{% endif %}
+  {% endfor %}
+
+  <div class="section-title">
+    Live Papers from MU Question Papers
+    <span class="badge badge-green" style="font-size:.62rem;margin-left:6px">
+      <i class="fas fa-circle" style="font-size:.38rem"></i>&nbsp;{{ online_papers|length }} papers
+    </span>
+  </div>
+
+  {% for subj in subjects_seen %}
+  {% set subj_papers = online_papers | selectattr('subject','equalto',subj) | list %}
+  <div class="card fade-in mb-2">
+    <div class="card-header">
+      <span class="card-title">
+        <i class="fas fa-book-open" style="color:var(--navy-mid)"></i>
+        {{ subj }}
+      </span>
+      <span class="badge badge-navy">{{ subj_papers|length }}</span>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Subject Name</th><th>Branch</th><th>Semester</th><th>Year</th><th>Exam Type</th><th>Action</th></tr>
+        </thead>
+        <tbody>
+        {% for p in subj_papers | sort(attribute='year', reverse=True) %}
+        <tr>
+          <td class="td-bold">{{ p.subject }}</td>
+          <td><span class="badge badge-gold">{{ stu.dept_code }}</span></td>
+          <td><span class="badge badge-navy">Sem {{ p.semester }}</span></td>
+          <td>
+            {% if p.year != 'N/A' %}
+            <span class="badge badge-dark">{{ p.year }}</span>
+            {% else %}&mdash;{% endif %}
+          </td>
+          <td>
+            <span class="badge
+              {% if p.exam_type=='Mid-Sem'   %}badge-amber
+              {% elif p.exam_type=='Practical'%}badge-purple
+              {% elif p.exam_type=='Re-Exam'  %}badge-red
+              {% else                        %}badge-teal{% endif %}">
+              {{ p.exam_type }}
+            </span>
+          </td>
+          <td>
+            <a href="{{ p.url }}" target="_blank" class="btn btn-primary btn-sm">
+              <i class="fas fa-external-link-alt"></i> Open
+            </a>
+          </td>
+        </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endfor %}
+
+{% else %}
+<div class="card fade-in">
+  <div class="empty-state" style="padding:44px">
+    <div class="empty-icon">&#127760;</div>
+    <h3>Could not fetch papers right now</h3>
+    <p>Check your internet connection or visit directly.</p>
+    <a href="{{ source_url }}" target="_blank" class="btn btn-primary" style="margin-top:14px">
+      <i class="fas fa-external-link-alt"></i> Open MU Question Papers
+    </a>
+  </div>
+</div>
+{% endif %}
+
+<!-- Teacher uploaded papers -->
+{% if local_papers %}
+<div class="section-title mt-3">Teacher-Uploaded Papers</div>
+<div class="card fade-in">
+  <div class="card-header">
+    <span class="card-title"><i class="fas fa-file-pdf" style="color:var(--red)"></i>Uploaded by Teachers</span>
+    <span class="badge badge-gray">{{ local_papers|length }}</span>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Subject</th><th>Code</th><th>Year</th><th>Type</th><th>Download</th></tr></thead>
+      <tbody>
+      {% for q in local_papers %}
+      <tr>
+        <td class="td-bold">{{ q.sub_name }}</td>
+        <td><span class="badge badge-gold">{{ q.code }}</span></td>
+        <td>{{ q.exam_year }}</td>
+        <td><span class="badge badge-amber">{{ q.exam_type or 'End-Sem' }}</span></td>
+        <td>
+          {% if q.file_path %}
+          <a href="{{ url_for('static', filename='uploads/' + q.file_path) }}" target="_blank" class="btn btn-outline btn-sm">
+            <i class="fas fa-download"></i> Download
+          </a>
+          {% else %}<span class="text-muted text-tiny">N/A</span>{% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

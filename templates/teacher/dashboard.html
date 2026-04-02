@@ -1,0 +1,175 @@
+{% extends "base.html" %}
+{% block title %}Teacher Dashboard — IntelliCampus{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+{% block page_subtitle %}Faculty workspace{% endblock %}
+{% block content %}
+
+<div class="welcome-banner fade-in">
+  <div class="dots">{% for i in range(12) %}<span></span>{% endfor %}</div>
+  <div class="welcome-tag">Faculty Workspace</div>
+  <h2>Welcome, {{ current_user.full_name }}.</h2>
+  <p>Manage attendance, assignments and student evaluations all from one place.</p>
+  <div class="welcome-meta">
+    <div class="welcome-meta-item"><div class="welcome-meta-label">Today</div><div class="welcome-meta-val">{{ today }}</div></div>
+    <div class="welcome-meta-item"><div class="welcome-meta-label">Classes Today</div><div class="welcome-meta-val">{{ today_classes|length }}</div></div>
+    <div class="welcome-meta-item"><div class="welcome-meta-label">Pending Reviews</div><div class="welcome-meta-val">{{ pending_reviews }}</div></div>
+  </div>
+</div>
+
+<div class="stats-grid">
+  <div class="stat-card blue-card fade-in">
+    <div class="stat-icon blue"><i class="fas fa-calendar-check"></i></div>
+    <div><div class="stat-label">Today's Classes</div><div class="stat-value">{{ today_classes|length }}</div><div class="stat-sub">{{ today }}</div></div>
+  </div>
+  <div class="stat-card red-card fade-in">
+    <div class="stat-icon red"><i class="fas fa-inbox"></i></div>
+    <div><div class="stat-label">Pending Reviews</div><div class="stat-value">{{ pending_reviews }}</div><div class="stat-sub">Ungraded submissions</div></div>
+  </div>
+  <div class="stat-card green-card fade-in">
+    <div class="stat-icon green"><i class="fas fa-users"></i></div>
+    <div><div class="stat-label">Students Tracked</div><div class="stat-value">{{ total_students }}</div><div class="stat-sub">In attendance records</div></div>
+  </div>
+  <div class="stat-card amber-card fade-in">
+    <div class="stat-icon amber"><i class="fas fa-file-lines"></i></div>
+    <div><div class="stat-label">Active Assignments</div><div class="stat-value">{{ upcoming_assignments|length }}</div><div class="stat-sub">With upcoming deadlines</div></div>
+  </div>
+</div>
+
+<!-- Charts Section -->
+<div class="card fade-in" style="margin-bottom: 20px;">
+  <div class="card-header">
+    <span class="card-title"><i class="fas fa-chart-column" style="color:var(--green)"></i>Subject-wise Average Attendance</span>
+  </div>
+  <div class="card-body" style="position: relative; height:300px; padding:15px;">
+    {% if subject_att_data %}
+      <canvas id="teacherAttChart" data-stats="{{ subject_att_data|tojson|forceescape }}"></canvas>
+    {% else %}
+      <div class="empty-state" style="padding:24px"><div class="empty-icon">&#128202;</div><h3>No attendance data yet</h3></div>
+    {% endif %}
+  </div>
+</div>
+
+<div class="grid-2">
+  <div class="card fade-in">
+    <div class="card-header">
+      <span class="card-title"><i class="fas fa-clock" style="color:var(--blue)"></i>Today's Schedule</span>
+      <span class="badge badge-blue">{{ today }}</span>
+    </div>
+    <div class="card-body">
+      {% for cls in today_classes %}
+      <div class="schedule-item">
+        <div class="schedule-time">{% if cls.start_time %}{{ cls.start_time.strftime('%H:%M') }}{% endif %}</div>
+        <div class="schedule-dot" style="background:var(--blue)"></div>
+        <div class="schedule-info">
+          <div class="schedule-sub">{{ cls.sub_name }}</div>
+          <div class="schedule-meta">{{ cls.code }} &nbsp;&middot;&nbsp; Room {{ cls.room or 'TBD' }} &nbsp;&middot;&nbsp;
+            {% if cls.start_time %}{{ cls.start_time.strftime('%H:%M') }}{% endif %}&ndash;{% if cls.end_time %}{{ cls.end_time.strftime('%H:%M') }}{% endif %}
+          </div>
+        </div>
+        <a href="{{ url_for('teacher.mark_attendance') }}?subject_id={{ cls.subject_id }}" class="btn btn-outline btn-sm">Mark</a>
+      </div>
+      {% else %}
+      <div class="empty-state" style="padding:24px"><div class="empty-icon">&#9728;&#65039;</div><h3>No classes today</h3></div>
+      {% endfor %}
+    </div>
+    <div class="card-footer"><a href="{{ url_for('teacher.mark_attendance') }}" class="btn btn-primary btn-sm"><i class="fas fa-clipboard-check"></i> Mark Attendance</a></div>
+  </div>
+
+  <div class="card fade-in">
+    <div class="card-header">
+      <span class="card-title"><i class="fas fa-file-lines" style="color:var(--amber)"></i>Upcoming Deadlines</span>
+      <a href="{{ url_for('teacher.assignments') }}" class="btn btn-ghost btn-sm">View All</a>
+    </div>
+    <div class="card-body">
+      {% for a in upcoming_assignments %}
+      <div class="schedule-item">
+        <div class="schedule-dot" style="background:var(--amber);margin-top:6px"></div>
+        <div class="schedule-info">
+          <div class="schedule-sub">{{ a.title }}</div>
+          <div class="schedule-meta">{{ a.sub_name }} &nbsp;&middot;&nbsp; Due {% if a.due_date %}{{ a.due_date.strftime('%d %b') }}{% endif %}</div>
+        </div>
+        <a href="{{ url_for('teacher.view_submissions', aid=a.id) }}" class="btn btn-ghost btn-sm">View</a>
+      </div>
+      {% else %}
+      <div class="empty-state" style="padding:24px"><div class="empty-icon">&#128221;</div><h3>No upcoming assignments</h3></div>
+      {% endfor %}
+    </div>
+    <div class="card-footer"><a href="{{ url_for('teacher.create_assignment') }}" class="btn btn-primary btn-sm"><i class="fas fa-plus"></i> Create Assignment</a></div>
+  </div>
+</div>
+
+<div class="section-title mt-2">Quick Actions</div>
+<style>
+  .q-icon-red { background: var(--red-light); color: var(--red); }
+  .q-icon-green { background: var(--green-light); color: var(--green); }
+  .q-icon-amber { background: var(--amber-light); color: var(--amber); }
+  .q-icon-blue { background: var(--blue-light); color: var(--blue); }
+  .q-icon-purple { background: var(--purple-light); color: var(--purple); }
+  .q-icon-teal { background: var(--teal-light); color: var(--teal); }
+</style>
+<div class="grid-3">
+  {% set qlinks = [
+    ('fas fa-clipboard-check','Mark Attendance', url_for('teacher.mark_attendance'), 'blue'),
+    ('fas fa-chart-bar','Attendance Report', url_for('teacher.attendance_report'), 'green'),
+    ('fas fa-pen-to-square','Enter Marks', url_for('teacher.exams'), 'amber'),
+    ('fas fa-file-arrow-up','Upload PYQ', url_for('teacher.upload_pyq'), 'red'),
+    ('fas fa-umbrella-beach','Apply Leave', url_for('teacher.apply_leave'), 'purple'),
+    ('fas fa-circle-user','My Profile', url_for('teacher.profile'), 'teal'),
+  ] %}
+  {% for icon, label, url, color in qlinks %}
+  <a href="{{ url }}" class="quick-card fade-in">
+    <div class="quick-icon q-icon-{{ color }}"><i class="{{ icon }}"></i></div>
+    <span class="quick-label">{{ label }}</span>
+    <i class="fas fa-chevron-right quick-arrow"></i>
+  </a>
+  {% endfor %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{% if subject_att_data %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const ctx = document.getElementById('teacherAttChart');
+    if(ctx) {
+        let labels = [];
+        let data = [];
+        try {
+            const stats = JSON.parse(ctx.dataset.stats || '[]');
+            labels = stats.map(s => s.sub_name);
+            data = stats.map(s => s.att_pct || 0);
+        } catch(e) { console.error(e); }
+        
+        let barGrad = ctx.getContext("2d").createLinearGradient(0,0,0,400);
+        barGrad.addColorStop(0, '#10b981'); 
+        barGrad.addColorStop(1, '#34d399');
+
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Avg Attendance %',
+                    data: data,
+                    backgroundColor: barGrad,
+                    borderRadius: Number.MAX_VALUE,
+                    borderSkipped: false,
+                    barPercentage: 0.6
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: { beginAtZero: true, max: 100, border: { display: false }, grid: { display: false } },
+                    x: { grid: { display: false } }
+                }
+            }
+        });
+    }
+});
+</script>
+{% endif %}
+{% endblock %}

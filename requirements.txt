@@ -1,0 +1,10 @@
+# EduCore ERP — Python 3.9–3.14 compatible (Windows / Mac / Linux)
+# PyMySQL = pure Python MySQL driver, no C compiler required!
+
+Flask==3.1.0
+Flask-Login==0.6.3
+Werkzeug==3.1.3
+PyMySQL==1.1.1
+cryptography==44.0.2
+python-dotenv==1.0.1
+gunicorn==21.2.0

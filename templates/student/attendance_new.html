@@ -1,0 +1,1169 @@
+{% extends "base.html" %}
+{% block title %}My Attendance — IntelliCampus{% endblock %}
+{% block page_title %}My Attendance{% endblock %}
+{% block page_subtitle %}Track and analyze your attendance across all subjects{% endblock %}
+
+{% block extra_css %}
+<style>
+/* ========== ATTENDANCE DASHBOARD STYLES ========== */
+
+/* Stats Overview Cards */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 12px;
+  margin-bottom: 20px;
+}
+@media (max-width: 1200px) { .stats-grid { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 768px) { .stats-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 480px) { .stats-grid { grid-template-columns: 1fr; } }
+
+.stat-card {
+  background: var(--surface);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+.stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+.stat-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+}
+.stat-card.primary::before { background: linear-gradient(90deg, var(--blue), var(--purple)); }
+.stat-card.success::before { background: var(--green); }
+.stat-card.danger::before { background: var(--red); }
+.stat-card.warning::before { background: var(--amber); }
+.stat-card.info::before { background: var(--teal); }
+
+.stat-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  margin-bottom: 10px;
+}
+.stat-card.primary .stat-icon { background: var(--blue-light); color: var(--blue); }
+.stat-card.success .stat-icon { background: var(--green-light); color: var(--green); }
+.stat-card.danger .stat-icon { background: var(--red-light); color: var(--red); }
+.stat-card.warning .stat-icon { background: var(--amber-light); color: var(--amber); }
+.stat-card.info .stat-icon { background: var(--teal-light); color: var(--teal); }
+
+.stat-value {
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: var(--text-1);
+  line-height: 1;
+}
+.stat-label {
+  font-size: 0.7rem;
+  color: var(--text-3);
+  margin-top: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+}
+.stat-change {
+  font-size: 0.68rem;
+  margin-top: 6px;
+  padding: 2px 6px;
+  border-radius: 10px;
+  display: inline-block;
+  font-weight: 600;
+}
+.stat-change.up { background: var(--green-light); color: var(--green); }
+.stat-change.down { background: var(--red-light); color: var(--red); }
+
+/* Charts Grid */
+.charts-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  margin-bottom: 20px;
+}
+.charts-grid.three-col {
+  grid-template-columns: repeat(3, 1fr);
+}
+.charts-grid.four-col {
+  grid-template-columns: repeat(4, 1fr);
+}
+@media (max-width: 1200px) { 
+  .charts-grid { grid-template-columns: repeat(2, 1fr); }
+  .charts-grid.three-col, .charts-grid.four-col { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 768px) { 
+  .charts-grid, .charts-grid.three-col, .charts-grid.four-col { grid-template-columns: 1fr; }
+}
+
+.chart-card {
+  background: var(--surface);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  padding: 16px;
+}
+.chart-card.compact {
+  padding: 14px;
+}
+.chart-card.compact canvas {
+  max-height: 160px;
+}
+.chart-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+.chart-title {
+  font-size: 0.85rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.chart-title i {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+}
+.chart-title.blue i { background: var(--blue-light); color: var(--blue); }
+.chart-title.green i { background: var(--green-light); color: var(--green); }
+.chart-title.purple i { background: var(--purple-light); color: var(--purple); }
+.chart-title.amber i { background: var(--amber-light); color: var(--amber); }
+.chart-title.teal i { background: var(--teal-light); color: var(--teal); }
+
+.chart-legend {
+  display: flex;
+  gap: 16px;
+  font-size: 0.75rem;
+}
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-3);
+}
+.legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+.legend-dot.present { background: var(--green); }
+.legend-dot.absent { background: var(--red); }
+.legend-dot.late { background: var(--amber); }
+
+/* Gauge Chart */
+.gauge-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 0;
+}
+.gauge-chart {
+  position: relative;
+  width: 130px;
+  height: 130px;
+}
+.gauge-chart svg {
+  transform: rotate(-90deg);
+  width: 130px;
+  height: 130px;
+}
+.gauge-chart circle {
+  fill: none;
+  stroke-linecap: round;
+}
+.gauge-bg { stroke: var(--surface2); stroke-width: 10; }
+.gauge-fill { stroke-width: 10; transition: stroke-dashoffset 1s ease; }
+.gauge-fill.good { stroke: var(--green); }
+.gauge-fill.warning { stroke: var(--amber); }
+.gauge-fill.danger { stroke: var(--red); }
+.gauge-center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+.gauge-value {
+  font-size: 1.8rem;
+  font-weight: 800;
+  line-height: 1;
+}
+.gauge-value.good { color: var(--green); }
+.gauge-value.warning { color: var(--amber); }
+.gauge-value.danger { color: var(--red); }
+.gauge-label {
+  font-size: 0.7rem;
+  color: var(--text-3);
+  margin-top: 2px;
+}
+.gauge-status {
+  margin-top: 10px;
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+.gauge-status.good { background: var(--green-light); color: var(--green); }
+.gauge-status.warning { background: var(--amber-light); color: #92400e; }
+.gauge-status.danger { background: var(--red-light); color: var(--red); }
+
+/* Subject Cards */
+.subjects-section {
+  margin-bottom: 20px;
+}
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+.section-title {
+  font-size: 1rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.section-title i { color: var(--purple); }
+
+.subjects-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
+}
+.subject-card {
+  background: var(--surface);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+.subject-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow);
+  border-color: var(--blue);
+}
+.subject-header {
+  padding: 12px 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+.subject-info h4 {
+  font-size: 0.85rem;
+  font-weight: 700;
+  margin-bottom: 4px;
+  color: var(--text-1);
+}
+.subject-code {
+  display: inline-block;
+  padding: 2px 8px;
+  background: var(--blue-light);
+  color: var(--blue);
+  border-radius: 4px;
+  font-size: 0.65rem;
+  font-weight: 700;
+}
+.subject-pct {
+  font-size: 1.3rem;
+  font-weight: 800;
+}
+.subject-pct.good { color: var(--green); }
+.subject-pct.warning { color: var(--amber); }
+.subject-pct.danger { color: var(--red); }
+
+.subject-progress {
+  padding: 0 14px;
+}
+.progress-track {
+  height: 6px;
+  background: var(--surface2);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.progress-bar {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.6s ease;
+}
+.progress-bar.good { background: linear-gradient(90deg, var(--green), #34d399); }
+.progress-bar.warning { background: linear-gradient(90deg, var(--amber), #fbbf24); }
+.progress-bar.danger { background: linear-gradient(90deg, var(--red), #f87171); }
+
+.subject-stats {
+  padding: 10px 14px;
+  display: flex;
+  gap: 14px;
+  font-size: 0.75rem;
+}
+.subject-stat {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--text-3);
+}
+.subject-stat i {
+  font-size: 0.65rem;
+}
+.subject-stat.present i { color: var(--green); }
+.subject-stat.absent i { color: var(--red); }
+.subject-stat.late i { color: var(--amber); }
+.subject-stat b { color: var(--text-1); }
+
+.subject-footer {
+  padding: 10px 14px;
+  background: var(--surface2);
+  border-top: 1px solid var(--border);
+}
+.subject-warning {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.75rem;
+  color: #92400e;
+}
+.subject-warning i { color: var(--amber); }
+.subject-tip {
+  font-size: 0.75rem;
+  color: var(--text-3);
+}
+.subject-tip i { color: var(--green); margin-right: 6px; }
+
+/* Calendar Heatmap */
+.calendar-section {
+  background: var(--surface);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  padding: 14px;
+  margin-bottom: 20px;
+}
+.calendar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+.calendar-nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.calendar-nav button {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  font-size: 0.8rem;
+}
+.calendar-nav button:hover {
+  background: var(--blue);
+  color: white;
+  border-color: var(--blue);
+}
+.calendar-month {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--text-2);
+  min-width: 120px;
+  text-align: center;
+}
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+.calendar-day-name {
+  text-align: center;
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--text-4);
+  text-transform: uppercase;
+  padding: 6px 0;
+}
+.calendar-day {
+  aspect-ratio: 1;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.72rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+  background: var(--surface2);
+  color: var(--text-3);
+}
+.calendar-day:hover:not(.empty) {
+  transform: scale(1.05);
+  z-index: 2;
+}
+.calendar-day.empty {
+  background: transparent;
+  cursor: default;
+}
+.calendar-day.today {
+  box-shadow: 0 0 0 2px var(--blue);
+}
+.calendar-day.present {
+  background: var(--green);
+  color: white;
+}
+.calendar-day.absent {
+  background: var(--red);
+  color: white;
+}
+.calendar-day.late {
+  background: var(--amber);
+  color: white;
+}
+.calendar-day.mixed {
+  background: linear-gradient(135deg, var(--green) 50%, var(--red) 50%);
+  color: white;
+}
+.calendar-legend {
+  display: flex;
+  justify-content: center;
+  gap: 24px;
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+
+/* Timeline */
+.timeline-section {
+  background: var(--surface);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+.timeline-header {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.timeline-filters {
+  display: flex;
+  gap: 6px;
+}
+.filter-btn {
+  padding: 4px 10px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  font-size: 0.7rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.filter-btn:hover, .filter-btn.active {
+  background: var(--blue);
+  color: white;
+  border-color: var(--blue);
+}
+.timeline-list {
+  max-height: 280px;
+  overflow-y: auto;
+}
+.timeline-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border);
+  transition: background 0.2s;
+}
+.timeline-item:last-child { border-bottom: none; }
+.timeline-item:hover { background: var(--surface2); }
+.timeline-item.filtered { display: none; }
+
+.timeline-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.timeline-dot.present { background: var(--green); }
+.timeline-dot.absent { background: var(--red); }
+.timeline-dot.late { background: var(--amber); }
+
+.timeline-content {
+  flex: 1;
+  min-width: 0;
+}
+.timeline-subject {
+  font-weight: 600;
+  font-size: 0.8rem;
+  color: var(--text-1);
+  margin-bottom: 1px;
+}
+.timeline-date {
+  font-size: 0.7rem;
+  color: var(--text-3);
+  font-family: var(--font-mono);
+}
+.timeline-badge {
+  padding: 3px 10px;
+  border-radius: 14px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+.timeline-badge.present { background: var(--green-light); color: var(--green); }
+.timeline-badge.absent { background: var(--red-light); color: var(--red); }
+.timeline-badge.late { background: var(--amber-light); color: #92400e; }
+
+/* Empty State */
+.empty-state {
+  padding: 60px 20px;
+  text-align: center;
+}
+.empty-icon {
+  font-size: 4rem;
+  margin-bottom: 16px;
+}
+.empty-state h3 {
+  font-size: 1.2rem;
+  margin-bottom: 8px;
+  color: var(--text-1);
+}
+.empty-state p {
+  color: var(--text-3);
+  font-size: 0.9rem;
+}
+
+/* Animations */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.fade-up {
+  opacity: 0;
+  animation: fadeInUp 0.5s ease forwards;
+}
+.fade-up:nth-child(1) { animation-delay: 0.05s; }
+.fade-up:nth-child(2) { animation-delay: 0.1s; }
+.fade-up:nth-child(3) { animation-delay: 0.15s; }
+.fade-up:nth-child(4) { animation-delay: 0.2s; }
+.fade-up:nth-child(5) { animation-delay: 0.25s; }
+
+@keyframes countUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.count-up {
+  animation: countUp 0.6s ease forwards;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+{% if overall_stats %}
+  {% set total = overall_stats.total_classes|default(0, true) %}
+  {% set present = overall_stats.total_present|default(0, true) %}
+  {% set absent = overall_stats.total_absent|default(0, true) %}
+  {% set late = overall_stats.total_late|default(0, true) %}
+  {% set pct = overall_stats.overall_pct|default(0, true) %}
+{% else %}
+  {% set total = 0 %}
+  {% set present = 0 %}
+  {% set absent = 0 %}
+  {% set late = 0 %}
+  {% set pct = 0 %}
+{% endif %}
+{% set status_class = 'good' if pct and pct >= 75 else ('warning' if pct and pct >= 60 else 'danger') %}
+
+<!-- Stats Overview -->
+<div class="stats-grid">
+  <div class="stat-card primary fade-up">
+    <div class="stat-icon"><i class="fas fa-percentage"></i></div>
+    <div class="stat-value">{{ pct|default(0, true) }}%</div>
+    <div class="stat-label">Overall Attendance</div>
+    {% if pct and pct >= 75 %}
+    <span class="stat-change up"><i class="fas fa-check"></i> On Track</span>
+    {% else %}
+    <span class="stat-change down"><i class="fas fa-exclamation"></i> Below Target</span>
+    {% endif %}
+  </div>
+  <div class="stat-card success fade-up">
+    <div class="stat-icon"><i class="fas fa-check-circle"></i></div>
+    <div class="stat-value">{{ present|default(0, true) }}</div>
+    <div class="stat-label">Classes Attended</div>
+  </div>
+  <div class="stat-card danger fade-up">
+    <div class="stat-icon"><i class="fas fa-times-circle"></i></div>
+    <div class="stat-value">{{ absent|default(0, true) }}</div>
+    <div class="stat-label">Classes Missed</div>
+  </div>
+  <div class="stat-card warning fade-up">
+    <div class="stat-icon"><i class="fas fa-clock"></i></div>
+    <div class="stat-value">{{ late|default(0, true) }}</div>
+    <div class="stat-label">Late Arrivals</div>
+  </div>
+  <div class="stat-card info fade-up">
+    <div class="stat-icon"><i class="fas fa-calendar-check"></i></div>
+    <div class="stat-value">{{ total|default(0, true) }}</div>
+    <div class="stat-label">Total Classes</div>
+  </div>
+</div>
+
+<!-- Charts Row 1: 4 compact charts -->
+<div class="charts-grid four-col">
+  <!-- Overall Gauge -->
+  <div class="chart-card compact fade-up">
+    <div class="chart-header">
+      <div class="chart-title green">
+        <i class="fas fa-bullseye"></i>
+        Score
+      </div>
+    </div>
+    <div class="gauge-container">
+      <div class="gauge-chart">
+        <svg width="130" height="130" viewBox="0 0 130 130">
+          <circle class="gauge-bg" cx="65" cy="65" r="55"/>
+          <circle class="gauge-fill {{ status_class }}" cx="65" cy="65" r="55" 
+                  stroke-dasharray="345" 
+                  stroke-dashoffset="{{ 345 - (345 * (pct|default(0, true)) / 100) }}"
+                  id="gaugeCircle"/>
+        </svg>
+        <div class="gauge-center">
+          <span class="gauge-value {{ status_class }}">{{ (pct|default(0, true))|round|int }}%</span>
+          <span class="gauge-label">Attendance</span>
+        </div>
+      </div>
+      <div class="gauge-status {{ status_class }}">
+        {% if pct and pct >= 75 %}
+        <i class="fas fa-check-circle"></i> Good
+        {% elif pct and pct >= 60 %}
+        <i class="fas fa-exclamation-triangle"></i> Low
+        {% else %}
+        <i class="fas fa-times-circle"></i> Critical
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Status Distribution Pie -->
+  <div class="chart-card compact fade-up">
+    <div class="chart-header">
+      <div class="chart-title teal">
+        <i class="fas fa-chart-pie"></i>
+        Distribution
+      </div>
+    </div>
+    <canvas id="distributionChart"></canvas>
+  </div>
+  
+  <!-- Weekly Pattern -->
+  <div class="chart-card compact fade-up">
+    <div class="chart-header">
+      <div class="chart-title amber">
+        <i class="fas fa-calendar-week"></i>
+        Weekly
+      </div>
+    </div>
+    <canvas id="weeklyChart"></canvas>
+  </div>
+
+  <!-- Target Progress -->
+  <div class="chart-card compact fade-up">
+    <div class="chart-header">
+      <div class="chart-title blue">
+        <i class="fas fa-bullseye"></i>
+        Target
+      </div>
+    </div>
+    <canvas id="targetChart"></canvas>
+  </div>
+</div>
+
+<!-- Charts Row 2: Trend + Subject comparison -->
+<div class="charts-grid">
+  <!-- Monthly Trend Chart -->
+  <div class="chart-card compact fade-up">
+    <div class="chart-header">
+      <div class="chart-title blue">
+        <i class="fas fa-chart-line"></i>
+        Monthly Trend
+      </div>
+      <div class="chart-legend">
+        <span class="legend-item"><span class="legend-dot present"></span> Present</span>
+        <span class="legend-item"><span class="legend-dot absent"></span> Absent</span>
+      </div>
+    </div>
+    <div style="height: 120px;"><canvas id="monthlyTrendChart"></canvas></div>
+  </div>
+  
+  <!-- Subject-wise Comparison -->
+  <div class="chart-card compact fade-up">
+    <div class="chart-header">
+      <div class="chart-title purple">
+        <i class="fas fa-chart-bar"></i>
+        By Subject
+      </div>
+    </div>
+    <div style="height: 120px;"><canvas id="subjectChart"></canvas></div>
+  </div>
+</div>
+
+<!-- Calendar + Timeline Row -->
+<div class="charts-grid">
+  <!-- Calendar Section -->
+  <div class="calendar-section fade-up" style="max-width: none; margin-bottom: 0;">
+    <div class="calendar-header">
+      <div class="chart-title blue">
+        <i class="fas fa-calendar-alt"></i>
+        Calendar
+      </div>
+      <div class="calendar-nav">
+        <button onclick="changeMonth(-1)"><i class="fas fa-chevron-left"></i></button>
+        <span class="calendar-month" id="calendarMonth"></span>
+        <button onclick="changeMonth(1)"><i class="fas fa-chevron-right"></i></button>
+      </div>
+    </div>
+    <div class="calendar-grid" id="calendarGrid">
+      <div class="calendar-day-name">S</div>
+      <div class="calendar-day-name">M</div>
+      <div class="calendar-day-name">T</div>
+      <div class="calendar-day-name">W</div>
+      <div class="calendar-day-name">T</div>
+      <div class="calendar-day-name">F</div>
+      <div class="calendar-day-name">S</div>
+    </div>
+    <div class="calendar-legend">
+      <span class="legend-item"><span class="legend-dot present"></span> Present</span>
+      <span class="legend-item"><span class="legend-dot absent"></span> Absent</span>
+      <span class="legend-item"><span class="legend-dot late"></span> Late</span>
+    </div>
+  </div>
+
+  <!-- Recent Activity Timeline -->
+  <div class="timeline-section fade-up">
+    <div class="timeline-header">
+      <div class="chart-title purple">
+        <i class="fas fa-history"></i>
+        Recent Activity
+      </div>
+      <div class="timeline-filters">
+        <button class="filter-btn active" onclick="filterTimeline('all', this)">All</button>
+        <button class="filter-btn" onclick="filterTimeline('present', this)">Present</button>
+        <button class="filter-btn" onclick="filterTimeline('absent', this)">Absent</button>
+      </div>
+    </div>
+    <div class="timeline-list">
+      {% for r in recent_att[:10] %}
+      <div class="timeline-item" data-status="{{ r.status|lower }}">
+        <div class="timeline-dot {{ r.status|lower }}"></div>
+        <div class="timeline-content">
+          <div class="timeline-subject">{{ r.sub_name }}</div>
+          <div class="timeline-date">{{ r.date }}</div>
+        </div>
+        <div class="timeline-badge {{ r.status|lower }}">{{ r.status }}</div>
+      </div>
+      {% else %}
+      <div class="empty-state" style="padding: 30px;">
+        <p>No recent attendance records</p>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<!-- Subject Cards -->
+<div class="subjects-section">
+  <div class="section-header">
+    <div class="section-title">
+      <i class="fas fa-book-open"></i>
+      Subject Breakdown
+    </div>
+  </div>
+  
+  <div class="subjects-grid">
+    {% for s in subject_att %}
+    {% set s_pct = s.pct|default(0, true) %}
+    {% set sub_status = 'good' if s_pct >= 75 else ('warning' if s_pct >= 60 else 'danger') %}
+    <div class="subject-card fade-up">
+      <div class="subject-header">
+        <div class="subject-info">
+          <h4>{{ s.sub_name }}</h4>
+          <span class="subject-code">{{ s.code }}</span>
+        </div>
+        <div class="subject-pct {{ sub_status }}">{{ s_pct }}%</div>
+      </div>
+      <div class="subject-progress">
+        <div class="progress-track">
+          <div class="progress-bar {{ sub_status }}" data-width="{{ s_pct }}"></div>
+        </div>
+      </div>
+      <div class="subject-stats">
+        <span class="subject-stat present"><i class="fas fa-check"></i> Present: <b>{{ s.present|default(0, true) }}</b></span>
+        <span class="subject-stat absent"><i class="fas fa-times"></i> Absent: <b>{{ s.absent|default(0, true) }}</b></span>
+        <span class="subject-stat late"><i class="fas fa-clock"></i> Late: <b>{{ s.late|default(0, true) }}</b></span>
+      </div>
+      <div class="subject-footer">
+        {% if s_pct < 75 %}
+        <div class="subject-warning">
+          <i class="fas fa-exclamation-triangle"></i>
+          <span>Below 75% - Need {{ ((75 * (s.total|default(1, true)) / 100) - (s.present|default(0, true)))|round|int }} more classes</span>
+        </div>
+        {% else %}
+        <div class="subject-tip">
+          <i class="fas fa-check-circle"></i>
+          Good standing
+        </div>
+        {% endif %}
+      </div>
+    </div>
+    {% else %}
+    <div class="chart-card" style="grid-column: 1 / -1;">
+      <div class="empty-state">
+        <div class="empty-icon">📊</div>
+        <h3>No Attendance Records Yet</h3>
+        <p>Your attendance records will appear here once your teachers start marking attendance.</p>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script id="student-attendance-dashboard-data" type="application/json">
+{
+  "attendanceData": {
+    {% for r in recent_att %}
+    {{ (r.date|string)|tojson }}: {{ (r.status|lower)|tojson }}{% if not loop.last %},{% endif %}
+    {% endfor %}
+  },
+  "subjectData": {
+    "labels": [{% for s in subject_att %}{{ s.sub_name|tojson }}{% if not loop.last %}, {% endif %}{% endfor %}],
+    "present": [{% for s in subject_att %}{{ s.present|default(0, true) }}{% if not loop.last %}, {% endif %}{% endfor %}],
+    "absent": [{% for s in subject_att %}{{ s.absent|default(0, true) }}{% if not loop.last %}, {% endif %}{% endfor %}],
+    "late": [{% for s in subject_att %}{{ s.late|default(0, true) }}{% if not loop.last %}, {% endif %}{% endfor %}],
+    "percentages": [{% for s in subject_att %}{{ s.pct|default(0, true) }}{% if not loop.last %}, {% endif %}{% endfor %}]
+  },
+  "monthlyData": {
+    "labels": [{% for m in monthly_trend %}{{ (m.month|string)|tojson }}{% if not loop.last %}, {% endif %}{% endfor %}],
+    "present": [{% for m in monthly_trend %}{{ m.present|default(0, true) }}{% if not loop.last %}, {% endif %}{% endfor %}],
+    "absent": [{% for m in monthly_trend %}{{ m.absent|default(0, true) }}{% if not loop.last %}, {% endif %}{% endfor %}],
+    "late": [{% for m in monthly_trend %}{{ m.late|default(0, true) }}{% if not loop.last %}, {% endif %}{% endfor %}]
+  },
+  "weeklyData": {
+    "labels": [{% for w in weekly_pattern %}{{ w.day_name|tojson }}{% if not loop.last %}, {% endif %}{% endfor %}],
+    "present": [{% for w in weekly_pattern %}{{ w.present|default(0, true) }}{% if not loop.last %}, {% endif %}{% endfor %}],
+    "absent": [{% for w in weekly_pattern %}{{ w.absent|default(0, true) }}{% if not loop.last %}, {% endif %}{% endfor %}]
+  },
+  "overallStats": {
+    "present": {{ present|default(0, true) }},
+    "absent": {{ absent|default(0, true) }},
+    "late": {{ late|default(0, true) }},
+    "total": {{ total|default(0, true) }},
+    "pct": {{ pct|default(0, true) }}
+  }
+}
+</script>
+<script>
+const dashboardData = JSON.parse(
+  document.getElementById('student-attendance-dashboard-data').textContent
+);
+const attendanceData = dashboardData.attendanceData || {};
+const subjectData = dashboardData.subjectData || { labels: [], present: [], absent: [], late: [], percentages: [] };
+const monthlyData = dashboardData.monthlyData || { labels: [], present: [], absent: [], late: [] };
+const weeklyData = dashboardData.weeklyData || { labels: [], present: [], absent: [] };
+const overallStats = dashboardData.overallStats || { present: 0, absent: 0, late: 0, total: 0, pct: 0 };
+
+document.querySelectorAll('.progress-bar[data-width]').forEach(function(bar) {
+  bar.style.width = `${bar.dataset.width || 0}%`;
+});
+
+// ========== CHART CONFIGURATIONS ==========
+const chartColors = {
+  green: 'rgba(16, 185, 129, 0.8)',
+  greenLight: 'rgba(16, 185, 129, 0.2)',
+  red: 'rgba(239, 68, 68, 0.8)',
+  redLight: 'rgba(239, 68, 68, 0.2)',
+  amber: 'rgba(245, 158, 11, 0.8)',
+  amberLight: 'rgba(245, 158, 11, 0.2)',
+  blue: 'rgba(59, 130, 246, 0.8)',
+  blueLight: 'rgba(59, 130, 246, 0.2)',
+  purple: 'rgba(139, 92, 246, 0.8)',
+  purpleLight: 'rgba(139, 92, 246, 0.2)'
+};
+
+// Monthly Trend Chart
+if (document.getElementById('monthlyTrendChart') && monthlyData.labels.length > 0) {
+  new Chart(document.getElementById('monthlyTrendChart').getContext('2d'), {
+    type: 'line',
+    data: {
+      labels: monthlyData.labels.map(m => {
+        const [year, month] = m.split('-');
+        return new Date(year, month - 1).toLocaleDateString('en-US', { month: 'short' });
+      }),
+      datasets: [
+        {
+          label: 'Present',
+          data: monthlyData.present,
+          borderColor: chartColors.green,
+          backgroundColor: chartColors.greenLight,
+          fill: true,
+          tension: 0.4,
+          pointRadius: 3,
+          pointHoverRadius: 5
+        },
+        {
+          label: 'Absent',
+          data: monthlyData.absent,
+          borderColor: chartColors.red,
+          backgroundColor: chartColors.redLight,
+          fill: true,
+          tension: 0.4,
+          pointRadius: 3,
+          pointHoverRadius: 5
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)' }, ticks: { font: { size: 10 } } },
+        x: { grid: { display: false }, ticks: { font: { size: 10 } } }
+      }
+    }
+  });
+}
+
+// Subject-wise Chart
+if (document.getElementById('subjectChart') && subjectData.labels.length > 0) {
+  new Chart(document.getElementById('subjectChart').getContext('2d'), {
+    type: 'bar',
+    data: {
+      labels: subjectData.labels.map(l => l.length > 10 ? l.substring(0,10)+'...' : l),
+      datasets: [
+        {
+          label: 'Present',
+          data: subjectData.present,
+          backgroundColor: chartColors.green,
+          borderRadius: 4
+        },
+        {
+          label: 'Absent',
+          data: subjectData.absent,
+          backgroundColor: chartColors.red,
+          borderRadius: 4
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)' }, ticks: { font: { size: 10 } } },
+        x: { grid: { display: false }, ticks: { font: { size: 9 } } }
+      }
+    }
+  });
+}
+
+// Weekly Pattern Chart
+if (document.getElementById('weeklyChart') && weeklyData.labels.length > 0) {
+  new Chart(document.getElementById('weeklyChart').getContext('2d'), {
+    type: 'bar',
+    data: {
+      labels: weeklyData.labels.map(d => d.substring(0,3)),
+      datasets: [
+        {
+          label: 'Present',
+          data: weeklyData.present,
+          backgroundColor: chartColors.green,
+          borderRadius: 4
+        },
+        {
+          label: 'Absent',
+          data: weeklyData.absent,
+          backgroundColor: chartColors.red,
+          borderRadius: 4
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)' }, ticks: { font: { size: 10 } } },
+        x: { grid: { display: false }, ticks: { font: { size: 10 } } }
+      }
+    }
+  });
+}
+
+// Distribution Pie Chart
+if (document.getElementById('distributionChart') && overallStats.total > 0) {
+  new Chart(document.getElementById('distributionChart').getContext('2d'), {
+    type: 'doughnut',
+    data: {
+      labels: ['Present', 'Absent', 'Late'],
+      datasets: [{
+        data: [overallStats.present, overallStats.absent, overallStats.late],
+        backgroundColor: [chartColors.green, chartColors.red, chartColors.amber],
+        borderWidth: 0,
+        cutout: '60%'
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: { padding: 8, usePointStyle: true, pointStyle: 'circle', font: { size: 10 } }
+        }
+      }
+    }
+  });
+}
+
+// Target Progress Chart
+if (document.getElementById('targetChart')) {
+  new Chart(document.getElementById('targetChart').getContext('2d'), {
+    type: 'doughnut',
+    data: {
+      labels: ['Current', 'Gap to 75%'],
+      datasets: [{
+        data: [overallStats.pct, Math.max(0, 75 - overallStats.pct)],
+        backgroundColor: [
+          overallStats.pct >= 75 ? chartColors.green : (overallStats.pct >= 60 ? chartColors.amber : chartColors.red),
+          'rgba(0,0,0,0.05)'
+        ],
+        borderWidth: 0,
+        cutout: '65%'
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: { padding: 8, usePointStyle: true, pointStyle: 'circle', font: { size: 10 } }
+        }
+      }
+    }
+  });
+}
+
+// ========== CALENDAR FUNCTIONALITY ==========
+let currentDate = new Date();
+
+function renderCalendar() {
+  const grid = document.getElementById('calendarGrid');
+  const monthSpan = document.getElementById('calendarMonth');
+  
+  // Keep only day names
+  const dayNames = grid.querySelectorAll('.calendar-day-name');
+  grid.innerHTML = '';
+  dayNames.forEach(d => grid.appendChild(d));
+  
+  const year = currentDate.getFullYear();
+  const month = currentDate.getMonth();
+  const today = new Date();
+  
+  monthSpan.textContent = new Date(year, month).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  
+  const firstDay = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  
+  // Empty cells
+  for (let i = 0; i < firstDay; i++) {
+    const empty = document.createElement('div');
+    empty.className = 'calendar-day empty';
+    grid.appendChild(empty);
+  }
+  
+  // Days
+  for (let day = 1; day <= daysInMonth; day++) {
+    const dayEl = document.createElement('div');
+    dayEl.className = 'calendar-day';
+    dayEl.textContent = day;
+    
+    const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    
+    if (attendanceData[dateStr]) {
+      dayEl.classList.add(attendanceData[dateStr]);
+    }
+    
+    if (year === today.getFullYear() && month === today.getMonth() && day === today.getDate()) {
+      dayEl.classList.add('today');
+    }
+    
+    grid.appendChild(dayEl);
+  }
+}
+
+function changeMonth(delta) {
+  if (delta === 0) {
+    currentDate = new Date();
+  } else {
+    currentDate.setMonth(currentDate.getMonth() + delta);
+  }
+  renderCalendar();
+}
+
+// ========== TIMELINE FILTER ==========
+function filterTimeline(status, btn) {
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  
+  document.querySelectorAll('.timeline-item').forEach(item => {
+    if (status === 'all' || item.dataset.status === status) {
+      item.classList.remove('filtered');
+    } else {
+      item.classList.add('filtered');
+    }
+  });
+}
+
+// ========== INITIALIZE ==========
+document.addEventListener('DOMContentLoaded', function() {
+  renderCalendar();
+  
+  // Animate gauge on load
+  setTimeout(() => {
+    const gauge = document.getElementById('gaugeCircle');
+    if (gauge) {
+      gauge.style.transition = 'stroke-dashoffset 1.5s ease';
+    }
+  }, 100);
+});
+</script>
+{% endblock %}

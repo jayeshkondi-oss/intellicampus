@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Assignments — IntelliCampus{% endblock %}
+{% block page_title %}Assignments{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div class="page-header-left"><h2>My Assignments</h2><p>{{ assignments|length }} total</p></div>
+  <a href="{{ url_for('teacher.create_assignment') }}" class="btn btn-primary"><i class="fas fa-plus"></i> Create Assignment</a>
+</div>
+<div class="card">
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Title</th><th>Subject</th><th>Dept</th><th>Due Date</th><th>Max Marks</th><th>Submissions</th><th>Actions</th></tr>
+      </thead>
+      <tbody>
+      {% for a in assignments %}
+      <tr>
+        <td class="fw-600">{{ a.title }}</td>
+        <td><span class="badge badge-blue">{{ a.sub_name }}</span></td>
+        <td class="text-muted text-small">{{ a.dept }}</td>
+        <td>
+          <span class="badge badge-gray">
+            {% if a.due_date %}{{ a.due_date.strftime('%d %b %Y') }}{% endif %}
+          </span>
+        </td>
+        <td>{{ a.max_marks }}</td>
+        <td><span class="badge badge-purple">{{ a.submission_count }}</span></td>
+        <td><a href="{{ url_for('teacher.view_submissions', aid=a.id) }}" class="btn btn-outline btn-sm">View</a></td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="7">
+          <div class="empty-state"><div class="empty-icon">&#128221;</div><h3>No assignments created yet</h3></div>
+        </td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

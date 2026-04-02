@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign In - IntelliCampus | {{ college_name }}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+</head>
+<body>
+<div class="login-page">
+  <div class="login-shell">
+    <!-- Left Panel - Showcase -->
+    <div class="login-showcase-panel">
+      <header class="page-brand">
+        <div class="page-brand-logo">
+          <img src="{{ url_for('static', filename='college_logo.png') }}" alt="{{ college_name }} Logo">
+        </div>
+        <div class="page-brand-copy">
+          <span class="page-brand-kicker">IntelliCampus ERP</span>
+          <h1 class="page-brand-title">{{ college_name }}</h1>
+        </div>
+      </header>
+
+      <section class="login-showcase">
+        <span class="showcase-tag"><i class="fas fa-sparkles"></i> Unified Campus Workspace</span>
+        <h3 class="showcase-title">Everything you need in one place</h3>
+        <p class="showcase-copy">Students, faculty, and administration can manage attendance, assignments, fees, results, and day-to-day college operations from a single connected portal.</p>
+        
+        <div class="showcase-highlights">
+          <div class="showcase-highlight">
+            <i class="fas fa-user-graduate"></i>
+            <div class="showcase-highlight-copy">
+              <span class="highlight-title">Student Access</span>
+              <p class="highlight-copy">Track attendance, view assignments, check fee details, and access results.</p>
+            </div>
+          </div>
+          <div class="showcase-highlight">
+            <i class="fas fa-chalkboard-teacher"></i>
+            <div class="showcase-highlight-copy">
+              <span class="highlight-title">Faculty Tools</span>
+              <p class="highlight-copy">Manage marks, review submissions, and handle classroom records efficiently.</p>
+            </div>
+          </div>
+          <div class="showcase-highlight">
+            <i class="fas fa-building-columns"></i>
+            <div class="showcase-highlight-copy">
+              <span class="highlight-title">Administration</span>
+              <p class="highlight-copy">Organize notices, manage records, and coordinate campus activities digitally.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- Right Panel - Login Form -->
+    <section class="login-form-wrap">
+      <!-- Mobile header (visible only on small screens) -->
+      <header class="page-brand" style="display: none;">
+        <div class="page-brand-logo">
+          <img src="{{ url_for('static', filename='college_logo.png') }}" alt="{{ college_name }} Logo">
+        </div>
+        <div class="page-brand-copy">
+          <span class="page-brand-kicker">IntelliCampus</span>
+          <h1 class="page-brand-title">{{ college_name }}</h1>
+        </div>
+      </header>
+
+      <div class="login-form-head">
+        <span class="login-form-kicker">👋 Welcome Back</span>
+        <h2 class="login-form-title">Sign in to your account</h2>
+        <p class="login-form-sub">Enter your credentials to access the dashboard</p>
+      </div>
+
+      {% if error %}
+      <div class="error-msg" role="alert">
+        <i class="fas fa-circle-exclamation"></i>
+        <span>{{ error }}</span>
+      </div>
+      {% endif %}
+
+      <form method="POST" action="{{ url_for('auth.login') }}">
+        <div class="form-group">
+          <label class="form-label" for="loginEmail">Email Address</label>
+          <div class="input-wrap">
+            <i class="fas fa-envelope input-icon"></i>
+            <input type="email" name="email" id="loginEmail" class="form-input"
+                   placeholder="you@college.edu" autocomplete="username" required autofocus>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="loginPassword">Password</label>
+          <div class="input-wrap">
+            <i class="fas fa-lock input-icon"></i>
+            <input type="password" name="password" id="loginPassword" class="form-input"
+                   placeholder="Enter your password" autocomplete="current-password" required>
+          </div>
+        </div>
+
+        <div class="remember-row">
+          <label class="checkbox-label">
+            <input type="checkbox" name="remember"> Remember me
+          </label>
+          <a href="#" class="forgot">Forgot password?</a>
+        </div>
+
+        <button type="submit" class="btn-login">
+          <span>Sign In</span>
+          <i class="fas fa-arrow-right"></i>
+        </button>
+      </form>
+
+      <div class="login-assist">
+        <i class="fas fa-shield-halved"></i>
+        <span>Secure access for administrators, faculty, and students</span>
+      </div>
+    </section>
+  </div>
+</div>
+
+<style>
+  /* Show mobile header on small screens */
+  @media (max-width: 920px) {
+    .login-form-wrap .page-brand {
+      display: flex !important;
+    }
+  }
+</style>
+
+<script>
+function fill(e, p) {
+  document.getElementById('loginEmail').value = e;
+  document.getElementById('loginPassword').value = p;
+  document.getElementById('loginPassword').focus();
+}
+</script>
+</body>
+</html>

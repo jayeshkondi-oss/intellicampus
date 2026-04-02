@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% block title %}Subjects & Results — IntelliCampus{% endblock %}
+{% block page_title %}Subjects & Results{% endblock %}
+{% block page_subtitle %}{{ stu.dept_name }} &middot; Semester {{ stu.semester }}{% endblock %}
+{% block content %}
+<div class="grid-2">
+  <!-- Subjects assigned to teachers in this dept+sem -->
+  <div class="card fade-in">
+    <div class="card-header">
+      <span class="card-title">
+        <i class="fas fa-book-open" style="color:var(--navy-mid)"></i>
+        My Subjects — Sem {{ stu.semester }}
+      </span>
+      <span class="badge badge-navy">{{ subjects|length }}</span>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Code</th><th>Subject Name</th><th>Teacher</th><th>Type</th><th>Credits</th></tr>
+        </thead>
+        <tbody>
+        {% for s in subjects %}
+        <tr>
+          <td><span class="badge badge-gold">{{ s.code }}</span></td>
+          <td class="td-bold">{{ s.name }}</td>
+          <td class="text-muted text-small">{{ s.teacher_name }}</td>
+          <td>
+            <span class="badge
+              {% if s.subject_type=='Practical' %}badge-amber
+              {% elif s.subject_type=='Elective' %}badge-purple
+              {% else %}badge-teal{% endif %}">
+              {{ s.subject_type }}
+            </span>
+          </td>
+          <td class="text-muted text-small">{{ s.credits }}</td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="5">
+            <div class="empty-state" style="padding:28px">
+              <div class="empty-icon">&#128218;</div>
+              <h3>No subjects assigned yet</h3>
+              <p>Teachers need to be assigned subjects first.</p>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Results -->
+  <div class="card fade-in">
+    <div class="card-header">
+      <span class="card-title">
+        <i class="fas fa-chart-line" style="color:var(--green)"></i>
+        My Results
+      </span>
+      <span class="badge badge-green">{{ results|length }}</span>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Subject</th><th>Internal</th><th>External</th></tr></thead>
+        <tbody>
+        {% for r in results %}
+        <tr>
+          <td class="td-bold">{{ r.sub_name }} <span class="text-muted text-small">({{ r.code }})</span></td>
+          <td>
+            {% if r.internal_marks is not none %}
+            <b>{{ r.internal_marks }}</b>{% if r.internal_max %}<span class="text-muted text-small"> / {{ r.internal_max }}</span>{% endif %}
+            {% else %}&mdash;{% endif %}
+          </td>
+          <td>
+            {% if r.external_marks is not none %}
+            <b>{{ r.external_marks }}</b>{% if r.external_max %}<span class="text-muted text-small"> / {{ r.external_max }}</span>{% endif %}
+            {% else %}&mdash;{% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="3">
+            <div class="empty-state" style="padding:28px">
+              <div class="empty-icon">&#128203;</div>
+              <h3>No results published yet</h3>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

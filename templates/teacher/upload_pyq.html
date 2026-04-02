@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}Upload PYQ — IntelliCampus{% endblock %}
+{% block page_title %}Upload Question Papers{% endblock %}
+{% block content %}
+<div style="max-width:600px">
+  <div class="card">
+    <div class="card-header"><span class="card-title"><i class="fas fa-file-arrow-up" style="color:var(--blue)"></i> &nbsp;Upload PYQ Paper</span></div>
+    <div class="card-body">
+      {% if error %}<div class="alert alert-danger">{{ error }}</div>{% endif %}
+      <form method="POST" enctype="multipart/form-data">
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label">Subject *</label>
+            <select name="subject_id" id="subject_id" class="form-control" required>
+              <option value="">Select</option>
+              {% for s in subjects %}<option value="{{ s.id }}" data-department-id="{{ s.department_id }}">{{ s.name }} ({{ s.dept }})</option>{% endfor %}
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Department *</label>
+            <select name="department_id" id="department_id" class="form-control" required>
+              <option value="">Select</option>
+              {% for d in departments %}<option value="{{ d.id }}">{{ d.name }}</option>{% endfor %}
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Semester *</label>
+            <select name="semester" class="form-control" required>
+              {% for s in range(1,9) %}<option value="{{ s }}">Sem {{ s }}</option>{% endfor %}
+            </select>
+          </div>
+          <div class="form-group"><label class="form-label">Exam Year *</label><input type="number" name="exam_year" class="form-control" min="2000" max="2030" required placeholder="e.g. 2023"></div>
+          <div class="form-group">
+            <label class="form-label">Exam Type</label>
+            <select name="exam_type" class="form-control">
+              <option>End-Sem</option><option>Mid-Sem 1</option><option>Mid-Sem 2</option><option>Practical</option>
+            </select>
+          </div>
+          <div class="form-group" style="grid-column:1/-1">
+            <label class="form-label">Question Paper File (PDF) *</label>
+            <input type="file" name="pyq_file" class="form-control" accept=".pdf,.doc,.docx" required>
+          </div>
+        </div>
+        <div style="margin-top:16px">
+          <button type="submit" class="btn btn-primary"><i class="fas fa-upload"></i> Upload Paper</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+<script>
+  const subjectSelect = document.getElementById('subject_id');
+  const departmentSelect = document.getElementById('department_id');
+
+  if (subjectSelect && departmentSelect) {
+    subjectSelect.addEventListener('change', function () {
+      const selectedOption = this.options[this.selectedIndex];
+      const departmentId = selectedOption.dataset.departmentId || '';
+      departmentSelect.value = departmentId;
+    });
+  }
+</script>
+{% endblock %}

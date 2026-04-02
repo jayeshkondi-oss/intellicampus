@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}Leave Requests — IntelliCampus{% endblock %}
+{% block page_title %}Leave Requests{% endblock %}
+{% block page_subtitle %}Review and approve faculty leave applications{% endblock %}
+{% block content %}
+<div class="card">
+  <div class="card-header"><span class="card-title"><i class="fas fa-file-medical" style="color:var(--purple)"></i> &nbsp;All Leave Applications</span></div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Faculty</th><th>Department</th><th>From</th><th>To</th><th>Reason</th><th>Status</th><th>Actions</th></tr></thead>
+      <tbody>
+      {% for l in leaves %}
+      <tr>
+        <td class="fw-600">{{ l.full_name }}</td>
+        <td class="text-muted text-small">{{ l.dept }}</td>
+        <td>{{ l.from_date }}</td>
+        <td>{{ l.to_date }}</td>
+        <td class="text-muted text-small" style="max-width:200px">{{ l.reason }}</td>
+        <td>
+          <span class="badge {% if l.status=='Approved' %}badge-green{% elif l.status=='Rejected' %}badge-red{% else %}badge-amber{% endif %}">{{ l.status }}</span>
+        </td>
+        <td>
+          {% if l.status == 'Pending' %}
+          <form method="POST" action="{{ url_for('admin.approve_leave', lid=l.id) }}" style="display:inline-flex;gap:6px">
+            <button name="action" value="Approved" class="btn btn-success btn-sm">Approve</button>
+            <button name="action" value="Rejected" class="btn btn-danger btn-sm">Reject</button>
+          </form>
+          {% else %}
+          <span class="text-muted text-small">Reviewed</span>
+          {% endif %}
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="7"><div class="empty-state"><div class="empty-icon">📋</div><h3>No leave applications</h3></div></td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

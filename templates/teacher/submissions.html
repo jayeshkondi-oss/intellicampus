@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+{% block title %}Submissions — IntelliCampus{% endblock %}
+{% block page_title %}Submissions{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div class="page-header-left">
+    <h2>{{ assignment.title }}</h2>
+    <p>
+      {{ submissions|length }} submission(s) &nbsp;&middot;&nbsp;
+      Max: {{ assignment.max_marks }} marks &nbsp;&middot;&nbsp;
+      Due: {% if assignment.due_date %}{{ assignment.due_date.strftime('%d %b %Y %H:%M') }}{% endif %}
+    </p>
+  </div>
+  <a href="{{ url_for('teacher.assignments') }}" class="btn btn-ghost btn-sm">
+    <i class="fas fa-arrow-left"></i> Back
+  </a>
+</div>
+
+<div class="card">
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Roll No</th><th>Student</th><th>Submitted</th><th>Status</th><th>Marks</th><th>Feedback</th><th>Action</th></tr>
+      </thead>
+      <tbody>
+      {% for s in submissions %}
+      <tr>
+        <td><span class="badge badge-blue">{{ s.roll_number }}</span></td>
+        <td class="fw-600">{{ s.full_name }}</td>
+        <td class="text-small text-muted">
+          {% if s.submitted_at %}{{ s.submitted_at.strftime('%d %b %Y') }}{% endif %}
+        </td>
+        <td>
+          <span class="badge
+            {% if s.status == 'Graded' %}badge-green
+            {% elif s.status == 'Late'   %}badge-amber
+            {% else                      %}badge-blue{% endif %}">
+            {{ s.status }}
+          </span>
+        </td>
+        <td>
+          {% if s.marks_obtained is not none %}
+            {{ s.marks_obtained }} / {{ assignment.max_marks }}
+          {% else %}&mdash;{% endif %}
+        </td>
+        <td class="text-small text-muted">{{ s.feedback or '&mdash;' }}</td>
+        <td>
+          <button class="btn btn-outline btn-sm"
+                  onclick="openGrade({{ s.id }}, {{ assignment.max_marks }})">
+            Grade
+          </button>
+        </td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="7">
+          <div class="empty-state">
+            <div class="empty-icon">&#128236;</div>
+            <h3>No submissions yet</h3>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Grade Modal -->
+<div id="gradeModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:999;align-items:center;justify-content:center">
+  <div class="card" style="width:380px;max-width:92vw">
+    <div class="card-header">
+      <span class="card-title">Grade Submission</span>
+      <button onclick="closeModal()" class="btn btn-ghost btn-sm">&#10005;</button>
+    </div>
+    <form method="POST" id="gradeForm">
+      <input type="hidden" name="assignment_id" value="{{ assignment.id }}">
+      <div class="card-body">
+        <div class="form-group mb-2">
+          <label class="form-label">Marks (out of <span id="maxMark"></span>)</label>
+          <input type="number" name="marks" id="gradeMarks" class="form-control"
+                 min="0" step="0.5" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Feedback</label>
+          <textarea name="feedback" class="form-control" rows="3"
+                    placeholder="Optional feedback for student..."></textarea>
+        </div>
+      </div>
+      <div class="card-footer" style="display:flex;gap:8px">
+        <button type="submit" class="btn btn-success">
+          <i class="fas fa-check"></i> Save Grade
+        </button>
+        <button type="button" onclick="closeModal()" class="btn btn-ghost">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+function openGrade(subId, maxMarks) {
+  document.getElementById('gradeForm').action = '/teacher/submissions/' + subId + '/grade';
+  document.getElementById('gradeMarks').max = maxMarks;
+  document.getElementById('maxMark').textContent = maxMarks;
+  var modal = document.getElementById('gradeModal');
+  modal.style.display = 'flex';
+}
+function closeModal() {
+  document.getElementById('gradeModal').style.display = 'none';
+}
+</script>
+{% endblock %}

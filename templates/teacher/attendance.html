@@ -1,0 +1,347 @@
+{% extends "base.html" %}
+{% block title %}Attendance — IntelliCampus{% endblock %}
+{% block page_title %}Attendance{% endblock %}
+{% block page_subtitle %}Mark, edit and report student attendance{% endblock %}
+
+{% block extra_css %}
+<style>
+/* Attendance Hub Styles */
+.att-hub-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+.att-hub-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.att-hub-title h2 {
+  font-size: 1.4rem;
+  font-weight: 700;
+  margin: 0;
+}
+.att-hub-badge {
+  padding: 4px 12px;
+  background: var(--blue-light);
+  color: var(--blue);
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+.att-hub-actions {
+  display: flex;
+  gap: 12px;
+}
+
+/* Quick Action Cards */
+.att-quick-actions {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 32px;
+}
+@media (max-width: 900px) { .att-quick-actions { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 600px) { .att-quick-actions { grid-template-columns: 1fr; } }
+
+.att-action-card {
+  background: var(--surface);
+  border-radius: var(--radius);
+  padding: 24px;
+  border: 1px solid var(--border);
+  transition: all 0.3s ease;
+  cursor: pointer;
+  text-decoration: none;
+  display: block;
+  position: relative;
+  overflow: hidden;
+}
+.att-action-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-md);
+  border-color: var(--blue);
+}
+.att-action-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+}
+.att-action-card.mark::before { background: linear-gradient(90deg, var(--green), #34d399); }
+.att-action-card.report::before { background: linear-gradient(90deg, var(--blue), var(--purple)); }
+.att-action-card.export::before { background: linear-gradient(90deg, var(--amber), #fbbf24); }
+
+.att-action-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.4rem;
+  margin-bottom: 16px;
+}
+.att-action-card.mark .att-action-icon { background: var(--green-light); color: var(--green); }
+.att-action-card.report .att-action-icon { background: var(--blue-light); color: var(--blue); }
+.att-action-card.export .att-action-icon { background: var(--amber-light); color: var(--amber); }
+
+.att-action-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text-1);
+  margin-bottom: 6px;
+}
+.att-action-desc {
+  font-size: 0.82rem;
+  color: var(--text-3);
+  line-height: 1.5;
+}
+.att-action-arrow {
+  position: absolute;
+  right: 20px;
+  top: 50%;
+  transform: translateY(-50%);
+  opacity: 0;
+  transition: all 0.3s;
+  color: var(--blue);
+  font-size: 1.2rem;
+}
+.att-action-card:hover .att-action-arrow {
+  opacity: 1;
+  right: 16px;
+}
+
+/* Subject Grid */
+.att-subject-section {
+  margin-bottom: 32px;
+}
+.att-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+.att-section-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.att-section-title i { color: var(--purple); }
+
+.att-subject-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 16px;
+}
+.att-subject-card {
+  background: var(--surface);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+.att-subject-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow);
+  border-color: var(--blue);
+}
+.att-subject-top {
+  padding: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+.att-subject-info h4 {
+  font-size: 0.95rem;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+.att-subject-meta {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.att-subject-tag {
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.68rem;
+  font-weight: 600;
+  background: var(--surface2);
+  color: var(--text-3);
+}
+.att-subject-tag.code {
+  background: var(--blue-light);
+  color: var(--blue);
+}
+.att-today-btn {
+  padding: 8px 14px;
+  background: var(--green);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.att-today-btn:hover {
+  background: #059669;
+  transform: scale(1.05);
+}
+.att-subject-bottom {
+  padding: 12px 20px;
+  background: var(--surface2);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.78rem;
+}
+.att-last-marked {
+  color: var(--text-3);
+}
+.att-last-marked b {
+  color: var(--text-2);
+}
+.att-view-history {
+  color: var(--blue);
+  text-decoration: none;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.att-view-history:hover {
+  text-decoration: underline;
+}
+
+/* Empty State */
+.att-empty-state {
+  background: var(--surface);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  padding: 60px 20px;
+  text-align: center;
+  grid-column: 1 / -1;
+}
+.att-empty-icon {
+  font-size: 4rem;
+  margin-bottom: 16px;
+}
+.att-empty-state h3 {
+  font-size: 1.2rem;
+  margin-bottom: 8px;
+}
+.att-empty-state p {
+  color: var(--text-3);
+  font-size: 0.9rem;
+}
+
+/* Animation */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.fade-up {
+  animation: fadeInUp 0.5s ease forwards;
+}
+.fade-up:nth-child(1) { animation-delay: 0.05s; }
+.fade-up:nth-child(2) { animation-delay: 0.1s; }
+.fade-up:nth-child(3) { animation-delay: 0.15s; }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Header -->
+<div class="att-hub-header">
+  <div class="att-hub-title">
+    <h2>Attendance Hub</h2>
+    <span class="att-hub-badge">{{ subjects|length }} Subject(s)</span>
+  </div>
+  <div class="att-hub-actions">
+    <a href="{{ url_for('teacher.attendance_report') }}" class="btn btn-outline">
+      <i class="fas fa-chart-bar"></i> View Reports
+    </a>
+    <a href="{{ url_for('teacher.mark_attendance') }}" class="btn btn-primary">
+      <i class="fas fa-clipboard-check"></i> Mark Attendance
+    </a>
+  </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="att-quick-actions">
+  <a href="{{ url_for('teacher.mark_attendance') }}" class="att-action-card mark fade-up">
+    <div class="att-action-icon"><i class="fas fa-clipboard-check"></i></div>
+    <div class="att-action-title">Mark Attendance</div>
+    <div class="att-action-desc">Take attendance for any subject with our interactive marking system.</div>
+    <i class="fas fa-arrow-right att-action-arrow"></i>
+  </a>
+  <a href="{{ url_for('teacher.attendance_report') }}" class="att-action-card report fade-up">
+    <div class="att-action-icon"><i class="fas fa-chart-pie"></i></div>
+    <div class="att-action-title">View Reports</div>
+    <div class="att-action-desc">Analyze attendance patterns and identify students with low attendance.</div>
+    <i class="fas fa-arrow-right att-action-arrow"></i>
+  </a>
+  <a href="{{ url_for('teacher.export_attendance_report') }}" class="att-action-card export fade-up">
+    <div class="att-action-icon"><i class="fas fa-file-export"></i></div>
+    <div class="att-action-title">Export Data</div>
+    <div class="att-action-desc">Download attendance data as CSV for offline analysis or reporting.</div>
+    <i class="fas fa-arrow-right att-action-arrow"></i>
+  </a>
+</div>
+
+<!-- Subject Grid -->
+<div class="att-subject-section">
+  <div class="att-section-header">
+    <div class="att-section-title">
+      <i class="fas fa-book-open"></i>
+      Your Subjects
+    </div>
+  </div>
+  
+  <div class="att-subject-grid">
+    {% for sub in subjects %}
+    <div class="att-subject-card fade-up">
+      <div class="att-subject-top">
+        <div class="att-subject-info">
+          <h4>{{ sub.name }}</h4>
+          <div class="att-subject-meta">
+            <span class="att-subject-tag code">{{ sub.code }}</span>
+            <span class="att-subject-tag">Sem {{ sub.semester }}</span>
+            <span class="att-subject-tag">Year {{ sub.year }}</span>
+          </div>
+        </div>
+        <a href="{{ url_for('teacher.mark_attendance') }}?subject_id={{ sub.id }}" class="att-today-btn">
+          <i class="fas fa-check"></i> Mark Today
+        </a>
+      </div>
+      <div class="att-subject-bottom">
+        <span class="att-last-marked">
+          <i class="fas fa-clock" style="margin-right: 4px;"></i>
+          Quick access available
+        </span>
+        <a href="{{ url_for('teacher.attendance_report') }}" class="att-view-history">
+          View History <i class="fas fa-chevron-right"></i>
+        </a>
+      </div>
+    </div>
+    {% else %}
+    <div class="att-empty-state">
+      <div class="att-empty-icon">📋</div>
+      <h3>No Subjects Assigned</h3>
+      <p>Contact your administrator to get subjects assigned to you.</p>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

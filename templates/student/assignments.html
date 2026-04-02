@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}Assignments — IntelliCampus{% endblock %}
+{% block page_title %}Assignments{% endblock %}
+{% block content %}
+<div class="card fade-in">
+  <div class="card-header">
+    <span class="card-title"><i class="fas fa-file-lines" style="color:var(--amber)"></i> &nbsp;My Assignments</span>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Title</th><th>Subject</th><th>Teacher</th><th>Due Date</th><th>Max Marks</th><th>Status</th><th>Marks</th><th>Action</th></tr>
+      </thead>
+      <tbody>
+      {% for a in assignments %}
+      <tr>
+        <td class="fw-600">{{ a.title }}</td>
+        <td><span class="badge badge-blue">{{ a.sub_name }}</span></td>
+        <td class="text-muted text-small">{{ a.teacher }}</td>
+        <td>
+          <span class="badge badge-{% if a.sub_status %}gray{% else %}red{% endif %}">
+            {% if a.due_date %}{{ a.due_date.strftime('%d %b %Y') }}{% endif %}
+          </span>
+        </td>
+        <td>{{ a.max_marks }}</td>
+        <td>
+          {% if a.sub_status == 'Graded' %}
+            <span class="badge badge-green">Graded</span>
+          {% elif a.sub_status == 'Late' %}
+            <span class="badge badge-amber">Late</span>
+          {% elif a.sub_status == 'Submitted' %}
+            <span class="badge badge-blue">Submitted</span>
+          {% else %}
+            <span class="badge badge-red">Not Submitted</span>
+          {% endif %}
+        </td>
+        <td>{% if a.marks_obtained is not none %}{{ a.marks_obtained }}{% else %}&mdash;{% endif %}</td>
+        <td>
+          {% if not a.sub_status %}
+          <a href="{{ url_for('student.submit_assignment', aid=a.id) }}" class="btn btn-primary btn-sm">Submit</a>
+          {% else %}
+          <span class="text-muted text-small">Done</span>
+          {% endif %}
+        </td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="8">
+          <div class="empty-state">
+            <div class="empty-icon">&#128221;</div>
+            <h3>No assignments yet</h3>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

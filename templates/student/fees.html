@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block title %}Fees — IntelliCampus{% endblock %}
+{% block page_title %}Fee Management{% endblock %}
+{% block content %}
+<!-- Summary row -->
+<div class="stats-grid mb-3">
+  <div class="stat-card fade-in">
+    <div class="stat-icon red"><i class="fas fa-file-invoice-dollar"></i></div>
+    <div>
+      <div class="stat-label">Total Pending</div>
+      <div class="stat-value">₹{{ "{:,.0f}".format(fees | selectattr('status','equalto','Pending') | map(attribute='amount') | sum) }}</div>
+    </div>
+  </div>
+  <div class="stat-card fade-in">
+    <div class="stat-icon green"><i class="fas fa-circle-check"></i></div>
+    <div>
+      <div class="stat-label">Total Paid</div>
+      <div class="stat-value">₹{{ "{:,.0f}".format(payments | map(attribute='amount_paid') | sum) }}</div>
+    </div>
+  </div>
+</div>
+
+<div class="grid-2">
+  <div class="card fade-in">
+    <div class="card-header"><span class="card-title"><i class="fas fa-receipt" style="color:var(--amber)"></i> &nbsp;Fee Records</span></div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Category</th><th>Year</th><th>Amount</th><th>Due Date</th><th>Status</th></tr></thead>
+        <tbody>
+        {% for f in fees %}
+        <tr>
+          <td class="fw-600">{{ f.cat_name }}</td>
+          <td class="text-muted text-small">{{ f.year_label or '—' }}</td>
+          <td>₹{{ "{:,.0f}".format(f.amount) }}</td>
+          <td class="text-small">{{ f.due_date or '—' }}</td>
+          <td>
+            <span class="badge {% if f.status=='Paid' %}badge-green{% elif f.status=='Pending' %}badge-red{% elif f.status=='Partial' %}badge-amber{% else %}badge-gray{% endif %}">{{ f.status }}</span>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="5" class="text-center text-muted" style="padding:24px">No fee records</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div class="card fade-in">
+    <div class="card-header"><span class="card-title"><i class="fas fa-clock-rotate-left" style="color:var(--green)"></i> &nbsp;Payment History</span></div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Date</th><th>Category</th><th>Amount</th><th>Mode</th><th>Receipt</th></tr></thead>
+        <tbody>
+        {% for p in payments %}
+        <tr>
+          <td class="text-small">{{ p.payment_date.strftime('%d %b %Y') if p.payment_date else '' }}</td>
+          <td class="fw-600">{{ p.cat_name }}</td>
+          <td style="color:var(--green);font-weight:600">₹{{ "{:,.0f}".format(p.amount_paid) }}</td>
+          <td><span class="badge badge-blue">{{ p.payment_mode }}</span></td>
+          <td class="text-small text-muted">{{ p.receipt_number or '—' }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="5" class="text-center text-muted" style="padding:24px">No payments yet</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

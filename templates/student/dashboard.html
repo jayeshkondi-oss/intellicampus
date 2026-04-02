@@ -1,0 +1,235 @@
+{% extends "base.html" %}
+{% block title %}Student Dashboard — IntelliCampus{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+{% block page_subtitle %}Welcome back to your student hub{% endblock %}
+{% block content %}
+
+<div class="welcome-banner fade-in">
+  <div class="dots">{% for i in range(12) %}<span></span>{% endfor %}</div>
+  <div class="welcome-tag">Student Hub</div>
+  <h2>Hey, {{ current_user.full_name.split()[0] }}! &#128075;</h2>
+  <p>Stay on top of your academics, attendance, fees and assignments all from here.</p>
+  <div class="welcome-meta">
+    <div class="welcome-meta-item"><div class="welcome-meta-label">Branch</div><div class="welcome-meta-val">{{ stu.dept_name }}</div></div>
+    <div class="welcome-meta-item"><div class="welcome-meta-label">Roll No</div><div class="welcome-meta-val">{{ stu.roll_number }}</div></div>
+    <div class="welcome-meta-item"><div class="welcome-meta-label">Semester</div><div class="welcome-meta-val">Sem {{ stu.semester }}, Year {{ stu.year }}</div></div>
+  </div>
+</div>
+
+<div class="stats-grid">
+  <div class="stat-card blue-card fade-in">
+    <div class="stat-icon blue"><i class="fas fa-book-open"></i></div>
+    <div><div class="stat-label">Current Semester</div><div class="stat-value">{{ stu.semester }}</div><div class="stat-sub">Year {{ stu.year }}</div></div>
+  </div>
+  <div class="stat-card {% if attendance_pct >= 75 %}green{% elif attendance_pct >= 60 %}amber{% else %}red{% endif %}-card fade-in">
+    <div class="stat-icon {% if attendance_pct >= 75 %}green{% elif attendance_pct >= 60 %}amber{% else %}red{% endif %}"><i class="fas fa-clipboard-check"></i></div>
+    <div>
+      <div class="stat-label">Attendance</div>
+      <div class="stat-value">{{ attendance_pct }}%</div>
+      <div class="stat-sub">{% if attendance_pct >= 75 %}Good standing &#10003;{% elif attendance_pct > 0 %}Below 75% threshold{% else %}No records yet{% endif %}</div>
+    </div>
+  </div>
+  <div class="stat-card {% if pending_fee > 0 %}red{% else %}green{% endif %}-card fade-in">
+    <div class="stat-icon {% if pending_fee > 0 %}red{% else %}green{% endif %}"><i class="fas fa-wallet"></i></div>
+    <div>
+      <div class="stat-label">Outstanding Fees</div>
+      <div class="stat-value">&#8377;{{ "{:,.0f}".format(pending_fee) }}</div>
+      <div class="stat-sub">{% if pending_fee == 0 %}All cleared &#10003;{% else %}Pending payment{% endif %}</div>
+    </div>
+  </div>
+  <div class="stat-card amber-card fade-in">
+    <div class="stat-icon amber"><i class="fas fa-file-pen"></i></div>
+    <div><div class="stat-label">Pending Assignments</div><div class="stat-value">{{ pending_assignments|length }}</div><div class="stat-sub">Submit before deadline</div></div>
+  </div>
+</div>
+
+<!-- Charts Section -->
+<div class="grid-2 mb-2">
+  <div class="card fade-in">
+    <div class="card-header">
+      <span class="card-title"><i class="fas fa-chart-area" style="color:var(--blue)"></i>My Attendance Progress</span>
+    </div>
+    <div class="card-body" style="position: relative; height:300px; padding:15px;">
+      {% if subject_att_data %}
+        <canvas id="studentAttChart" data-stats="{{ subject_att_data|tojson|forceescape }}"></canvas>
+      {% else %}
+        <div class="empty-state" style="padding:24px"><div class="empty-icon">&#128202;</div><h3>No attendance data yet</h3></div>
+      {% endif %}
+    </div>
+  </div>
+  
+  <div class="card fade-in">
+    <div class="card-header">
+      <span class="card-title"><i class="fas fa-list-check" style="color:var(--amber)"></i>Assignment Completion</span>
+    </div>
+    <div class="card-body" style="position: relative; height:300px; padding:15px; display:flex; justify-content:center; align-items:center;">
+      <canvas id="assignmentChart" data-completed="{{ completed_assignments|default(0) }}" data-total="{{ total_assignments|default(0) }}"></canvas>
+    </div>
+  </div>
+</div>
+
+<div class="grid-2 mb-2">
+  <!-- Today's classes -->
+  <div class="card fade-in">
+    <div class="card-header">
+      <span class="card-title"><i class="fas fa-calendar-day" style="color:var(--blue)"></i>Today &mdash; {{ today }}</span>
+      <a href="{{ url_for('student.timetable') }}" class="btn btn-ghost btn-sm">Full Schedule</a>
+    </div>
+    <div class="card-body">
+      {% for cls in today_classes %}
+      <div class="schedule-item">
+        <div class="schedule-time">{% if cls.start_time %}{{ cls.start_time.strftime('%H:%M') }}{% endif %}</div>
+        <div class="schedule-dot" style="background:var(--blue)"></div>
+        <div class="schedule-info">
+          <div class="schedule-sub">{{ cls.sub_name }}</div>
+          <div class="schedule-meta">{{ cls.code }} &nbsp;&middot;&nbsp; {{ cls.teacher }} &nbsp;&middot;&nbsp; Room {{ cls.room or 'TBD' }}</div>
+        </div>
+      </div>
+      {% else %}
+      <div class="empty-state" style="padding:24px">
+        <div class="empty-icon">&#9728;&#65039;</div>
+        <h3>No classes today</h3>
+        <p>Enjoy your free time!</p>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Pending assignments -->
+  <div class="card fade-in">
+    <div class="card-header">
+      <span class="card-title"><i class="fas fa-file-pen" style="color:var(--amber)"></i>Upcoming Assignments</span>
+      <a href="{{ url_for('student.assignments') }}" class="btn btn-ghost btn-sm">View All</a>
+    </div>
+    <div class="card-body">
+      {% for a in pending_assignments %}
+      <div class="schedule-item">
+        <div class="schedule-dot" style="background:var(--amber);margin-top:6px"></div>
+        <div class="schedule-info">
+          <div class="schedule-sub">{{ a.title }}</div>
+          <div class="schedule-meta">{{ a.sub_name }} &nbsp;&middot;&nbsp; Due {% if a.due_date %}{{ a.due_date.strftime('%d %b') }}{% endif %}</div>
+        </div>
+        <a href="{{ url_for('student.submit_assignment', aid=a.id) }}" class="btn btn-primary btn-sm">Submit</a>
+      </div>
+      {% else %}
+      <div class="empty-state" style="padding:24px">
+        <div class="empty-icon">&#9989;</div>
+        <h3>All caught up!</h3><p>No pending assignments.</p>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<!-- Quick links -->
+<div class="section-title">Quick Access</div>
+<style>
+  .q-icon-red { background: var(--red-light); color: var(--red); }
+  .q-icon-green { background: var(--green-light); color: var(--green); }
+  .q-icon-amber { background: var(--amber-light); color: var(--amber); }
+  .q-icon-blue { background: var(--blue-light); color: var(--blue); }
+  .q-icon-purple { background: var(--purple-light); color: var(--purple); }
+  .q-icon-teal { background: var(--teal-light); color: var(--teal); }
+</style>
+<div class="grid-3">
+  {% set qlinks = [
+    ('fas fa-file-pdf','PYQ Papers', url_for('student.pyq'), 'red'),
+    ('fas fa-chart-line','My Results', url_for('student.subjects'), 'green'),
+    ('fas fa-wallet','Fee Status', url_for('student.fees'), 'amber'),
+    ('fas fa-clipboard-check','Attendance', url_for('student.attendance'), 'blue'),
+    ('fas fa-circle-user','My Profile', url_for('student.profile'), 'purple'),
+    ('fas fa-key','Change Password', url_for('auth.change_password'), 'teal'),
+  ] %}
+  {% for icon, label, url, color in qlinks %}
+  <a href="{{ url }}" class="quick-card fade-in">
+    <div class="quick-icon q-icon-{{ color }}"><i class="{{ icon }}"></i></div>
+    <span class="quick-label">{{ label }}</span>
+    <i class="fas fa-chevron-right quick-arrow"></i>
+  </a>
+  {% endfor %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const attCtx = document.getElementById('studentAttChart');
+    if(attCtx) {
+        let labels = [];
+        let data = [];
+        try {
+            const stats = JSON.parse(attCtx.dataset.stats || '[]');
+            labels = stats.map(s => s.sub_name);
+            data = stats.map(s => s.att_pct || 0);
+        } catch(e) { console.error(e); }
+        
+        let barGrad = attCtx.getContext("2d").createLinearGradient(0,0,400,0);
+        barGrad.addColorStop(0, '#3b82f6'); 
+        barGrad.addColorStop(1, '#818cf8');
+
+        new Chart(attCtx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Attendance %',
+                    data: data,
+                    backgroundColor: barGrad,
+                    borderRadius: Number.MAX_VALUE,
+                    borderSkipped: false,
+                    barPercentage: 0.6
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { beginAtZero: true, max: 100, border: { display: false }, grid: { display: false } },
+                    y: { grid: { display: false } }
+                }
+            }
+        });
+    }
+
+    const assignCtx = document.getElementById('assignmentChart');
+    if(assignCtx) {
+        const completed = parseInt(assignCtx.dataset.completed || 0);
+        const total = parseInt(assignCtx.dataset.total || 0);
+        const pending = Math.max(0, total - completed);
+        
+        // If there are zero assignments entirely, don't show the chart
+        if (total === 0) {
+            assignCtx.outerHTML = '<div class="empty-state" style="padding:24px"><div class="empty-icon">&#9989;</div><h3>No assignments assigned yet</h3></div>';
+        } else {
+            let grad1 = assignCtx.getContext("2d").createLinearGradient(0,0,0,400);
+            grad1.addColorStop(0, '#10b981'); grad1.addColorStop(1, '#34d399');
+            
+            new Chart(assignCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Completed', 'Pending'],
+                    datasets: [{
+                        data: [completed, pending],
+                        backgroundColor: [grad1, '#e2e8f0'],
+                        borderWidth: 0,
+                        hoverOffset: 8
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    circumference: 180,
+                    rotation: -90,
+                    cutout: '80%',
+                    plugins: {
+                        legend: { position: 'bottom', labels: { padding: 20, usePointStyle: true, pointStyle: 'circle' } }
+                    },
+                    layout: { padding: 10 }
+                }
+            });
+        }
+    }
+});
+</script>
+{% endblock %}

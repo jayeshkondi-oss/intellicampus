@@ -1,0 +1,676 @@
+{% extends "base.html" %}
+{% block title %}Attendance Report — IntelliCampus{% endblock %}
+{% block page_title %}Attendance Report{% endblock %}
+{% block page_subtitle %}Comprehensive attendance analytics{% endblock %}
+
+{% block extra_css %}
+<style>
+/* Report Dashboard Styles */
+.report-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+.report-actions {
+  display: flex;
+  gap: 12px;
+}
+
+/* Summary Cards */
+.report-summary {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+@media (max-width: 1000px) { .report-summary { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 600px) { .report-summary { grid-template-columns: 1fr; } }
+
+.summary-card {
+  background: var(--surface);
+  border-radius: var(--radius);
+  padding: 20px;
+  border: 1px solid var(--border);
+  position: relative;
+  overflow: hidden;
+}
+.summary-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+}
+.summary-card.total::before { background: var(--blue); }
+.summary-card.good::before { background: var(--green); }
+.summary-card.warning::before { background: var(--amber); }
+.summary-card.danger::before { background: var(--red); }
+
+.summary-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  margin-bottom: 12px;
+}
+.summary-card.total .summary-icon { background: var(--blue-light); color: var(--blue); }
+.summary-card.good .summary-icon { background: var(--green-light); color: var(--green); }
+.summary-card.warning .summary-icon { background: var(--amber-light); color: var(--amber); }
+.summary-card.danger .summary-icon { background: var(--red-light); color: var(--red); }
+
+.summary-value {
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: var(--text-1);
+}
+.summary-label {
+  font-size: 0.75rem;
+  color: var(--text-3);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-top: 2px;
+}
+
+/* Charts Section */
+.report-charts {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  margin-bottom: 24px;
+}
+@media (max-width: 900px) { .report-charts { grid-template-columns: 1fr; } }
+
+.chart-card {
+  background: var(--surface);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  padding: 20px;
+}
+.chart-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+.chart-title {
+  font-size: 1rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.chart-title i { color: var(--blue); }
+
+.chart-container {
+  position: relative;
+  height: 220px;
+  width: 100%;
+}
+
+/* Data Table */
+.report-table-container {
+  background: var(--surface);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+.report-table-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.report-table-title {
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.report-table-title i { color: var(--purple); }
+
+.report-toolbar {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+.report-search {
+  position: relative;
+}
+.report-search input {
+  padding: 8px 14px 8px 36px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 0.85rem;
+  width: 220px;
+  background: var(--surface2);
+}
+.report-search input:focus {
+  outline: none;
+  border-color: var(--blue);
+  background: var(--surface);
+}
+.report-search i {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-4);
+}
+
+.report-filter-chips {
+  display: flex;
+  gap: 6px;
+}
+.filter-chip {
+  padding: 6px 12px;
+  border-radius: 20px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  font-size: 0.72rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.filter-chip:hover, .filter-chip.active {
+  background: var(--blue);
+  color: white;
+  border-color: var(--blue);
+}
+
+/* Enhanced Table */
+.report-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.report-table th {
+  padding: 14px 16px;
+  text-align: left;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-3);
+  background: var(--surface2);
+  border-bottom: 1px solid var(--border);
+}
+.report-table th.sortable {
+  cursor: pointer;
+  user-select: none;
+}
+.report-table th.sortable:hover {
+  color: var(--blue);
+}
+.report-table th .sort-icon {
+  margin-left: 4px;
+  opacity: 0.5;
+}
+.report-table th.sorted .sort-icon {
+  opacity: 1;
+  color: var(--blue);
+}
+.report-table td {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.88rem;
+}
+.report-table tr:last-child td {
+  border-bottom: none;
+}
+.report-table tr:hover {
+  background: var(--surface2);
+}
+.report-table tr.filtered-out {
+  display: none;
+}
+
+.student-cell {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.student-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--blue), var(--purple));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 700;
+  font-size: 0.85rem;
+  flex-shrink: 0;
+}
+.student-name {
+  font-weight: 600;
+  color: var(--text-1);
+}
+.student-roll {
+  font-size: 0.75rem;
+  color: var(--text-3);
+  font-family: var(--font-mono);
+}
+
+.progress-cell {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.progress-track {
+  flex: 1;
+  height: 8px;
+  background: var(--surface2);
+  border-radius: 4px;
+  overflow: hidden;
+  min-width: 80px;
+}
+.progress-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.5s ease;
+}
+.progress-fill.good { background: linear-gradient(90deg, var(--green), #34d399); }
+.progress-fill.warning { background: linear-gradient(90deg, var(--amber), #fbbf24); }
+.progress-fill.danger { background: linear-gradient(90deg, var(--red), #f87171); }
+
+.pct-badge {
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  min-width: 50px;
+  text-align: center;
+}
+.pct-badge.good { background: var(--green-light); color: var(--green); }
+.pct-badge.warning { background: var(--amber-light); color: #92400e; }
+.pct-badge.danger { background: var(--red-light); color: var(--red); }
+
+.count-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+.count-badge.present { background: var(--green-light); color: var(--green); }
+.count-badge.absent { background: var(--red-light); color: var(--red); }
+
+/* Empty State */
+.report-empty {
+  padding: 60px 20px;
+  text-align: center;
+}
+.report-empty-icon {
+  font-size: 4rem;
+  margin-bottom: 16px;
+}
+.report-empty h3 {
+  font-size: 1.2rem;
+  margin-bottom: 8px;
+}
+.report-empty p {
+  color: var(--text-3);
+}
+
+/* Animation */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.fade-in {
+  animation: fadeIn 0.4s ease forwards;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+{% set total_records = report|length %}
+
+<!-- Header -->
+<div class="report-header">
+  <div>
+    <h2 style="font-size: 1.4rem; font-weight: 700; margin: 0;">Attendance Analytics</h2>
+    <p style="color: var(--text-3); font-size: 0.85rem; margin: 4px 0 0;">
+      <i class="fas fa-calendar-alt"></i> As of today
+    </p>
+  </div>
+  <div class="report-actions">
+    <a href="{{ url_for('teacher.attendance') }}" class="btn btn-outline">
+      <i class="fas fa-arrow-left"></i> Back
+    </a>
+    <a href="{{ url_for('teacher.export_attendance_report') }}" class="btn btn-success">
+      <i class="fas fa-download"></i> Export CSV
+    </a>
+  </div>
+</div>
+
+<!-- Summary Cards -->
+<div class="report-summary">
+  <div class="summary-card total fade-in">
+    <div class="summary-icon"><i class="fas fa-users"></i></div>
+    <div class="summary-value">{{ total_records }}</div>
+    <div class="summary-label">Total Records</div>
+  </div>
+  <div class="summary-card good fade-in">
+    <div class="summary-icon"><i class="fas fa-check-circle"></i></div>
+    <div class="summary-value">{{ good_students }}</div>
+    <div class="summary-label">Above 75%</div>
+  </div>
+  <div class="summary-card warning fade-in">
+    <div class="summary-icon"><i class="fas fa-exclamation-circle"></i></div>
+    <div class="summary-value">{{ warning_students }}</div>
+    <div class="summary-label">60-74%</div>
+  </div>
+  <div class="summary-card danger fade-in">
+    <div class="summary-icon"><i class="fas fa-times-circle"></i></div>
+    <div class="summary-value">{{ danger_students }}</div>
+    <div class="summary-label">Below 60%</div>
+  </div>
+</div>
+
+<!-- Charts -->
+<div class="report-charts">
+  <div class="chart-card fade-in">
+    <div class="chart-header">
+      <div class="chart-title">
+        <i class="fas fa-chart-pie"></i>
+        Attendance Distribution
+      </div>
+    </div>
+    <div class="chart-container">
+      <canvas id="distributionChart"></canvas>
+    </div>
+  </div>
+  <div class="chart-card fade-in">
+    <div class="chart-header">
+      <div class="chart-title">
+        <i class="fas fa-chart-bar"></i>
+        Subject Comparison
+      </div>
+    </div>
+    <div class="chart-container">
+      <canvas id="subjectChart"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- Data Table -->
+<div class="report-table-container fade-in">
+  <div class="report-table-header">
+    <div class="report-table-title">
+      <i class="fas fa-table"></i>
+      Detailed Report
+    </div>
+    <div class="report-toolbar">
+      <div class="report-search">
+        <i class="fas fa-search"></i>
+        <input type="text" id="reportSearch" placeholder="Search student or subject..." oninput="searchReport(this.value)">
+      </div>
+      <div class="report-filter-chips">
+        <span class="filter-chip active" onclick="filterReport('all', this)">All</span>
+        <span class="filter-chip" onclick="filterReport('good', this)">≥75%</span>
+        <span class="filter-chip" onclick="filterReport('warning', this)">60-74%</span>
+        <span class="filter-chip" onclick="filterReport('danger', this)">&lt;60%</span>
+      </div>
+    </div>
+  </div>
+  
+  <div class="table-wrap">
+    <table class="report-table">
+      <thead>
+        <tr>
+          <th class="sortable" onclick="sortTable(0)">Student <i class="fas fa-sort sort-icon"></i></th>
+          <th class="sortable" onclick="sortTable(1)">Subject <i class="fas fa-sort sort-icon"></i></th>
+          <th>Present</th>
+          <th>Absent</th>
+          <th>Total</th>
+          <th class="sortable" onclick="sortTable(5)">Attendance <i class="fas fa-sort sort-icon"></i></th>
+        </tr>
+      </thead>
+      <tbody id="reportBody">
+        {% for r in report %}
+        {% set pct_val = r.pct|default(0, true) %}
+        <tr data-name="{{ r.full_name|lower }}" 
+            data-subject="{{ r.sub_name|lower }}"
+            data-pct="{{ pct_val }}"
+            data-category="{% if pct_val >= 75 %}good{% elif pct_val >= 60 %}warning{% else %}danger{% endif %}">
+          <td>
+            <div class="student-cell">
+              <div class="student-avatar">{{ r.full_name[0] }}</div>
+              <div>
+                <div class="student-name">{{ r.full_name }}</div>
+                <div class="student-roll">{{ r.roll_number }}</div>
+              </div>
+            </div>
+          </td>
+          <td>{{ r.sub_name }}</td>
+          <td><span class="count-badge present">{{ r.present|default(0, true) }}</span></td>
+          <td><span class="count-badge absent">{{ r.absent|default(0, true) }}</span></td>
+          <td>{{ r.total|default(0, true) }}</td>
+          <td>
+            <div class="progress-cell">
+              <div class="progress-track">
+                <div class="progress-fill {% if pct_val >= 75 %}good{% elif pct_val >= 60 %}warning{% else %}danger{% endif %}"
+                     data-width="{{ pct_val }}"></div>
+              </div>
+              <span class="pct-badge {% if pct_val >= 75 %}good{% elif pct_val >= 60 %}warning{% else %}danger{% endif %}">
+                {{ pct_val }}%
+              </span>
+            </div>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="6">
+            <div class="report-empty">
+              <div class="report-empty-icon">📊</div>
+              <h3>No Attendance Data</h3>
+              <p>Start marking attendance to see reports here.</p>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script id="attendance-report-distribution-data" type="application/json">
+{{ {'good': good_students|default(0), 'warning': warning_students|default(0), 'danger': danger_students|default(0)}|tojson }}
+</script>
+<script id="attendance-report-subject-data" type="application/json">
+[
+{% for r in report %}
+  {
+    "sub_name": {{ r.sub_name|tojson }},
+    "present": {{ r.present|default(0, true) }},
+    "absent": {{ r.absent|default(0, true) }}
+  }{% if not loop.last %},{% endif %}
+{% endfor %}
+]
+</script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  document.querySelectorAll('.progress-fill[data-width]').forEach(function(fill) {
+    fill.style.width = `${fill.dataset.width || 0}%`;
+  });
+
+  const distributionData = JSON.parse(
+    document.getElementById('attendance-report-distribution-data').textContent
+  );
+  const subjectRows = JSON.parse(
+    document.getElementById('attendance-report-subject-data').textContent
+  );
+  const subjectData = {};
+  subjectRows.forEach(function(row) {
+    const subName = row.sub_name;
+    if (!subjectData[subName]) {
+      subjectData[subName] = { present: 0, absent: 0 };
+    }
+    subjectData[subName].present += row.present || 0;
+    subjectData[subName].absent += row.absent || 0;
+  });
+
+  console.log('Distribution data:', distributionData);
+  console.log('Subject data:', subjectData);
+
+  // Distribution Chart (Doughnut)
+  const distCtx = document.getElementById('distributionChart');
+  if (distCtx && typeof Chart !== 'undefined') {
+    new Chart(distCtx, {
+      type: 'doughnut',
+      data: {
+        labels: ['≥75% (Good)', '60-74% (Warning)', '<60% (Critical)'],
+        datasets: [{
+          data: [distributionData.good, distributionData.warning, distributionData.danger],
+          backgroundColor: ['#10b981', '#f59e0b', '#ef4444'],
+          borderWidth: 0,
+          cutout: '70%'
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: { padding: 15, usePointStyle: true, pointStyle: 'circle' }
+          }
+        }
+      }
+    });
+    console.log('Distribution chart created');
+  } else {
+    console.error('Distribution chart canvas not found or Chart.js not loaded');
+  }
+
+  // Subject Comparison Chart (Bar)
+  const subjectCtx = document.getElementById('subjectChart');
+  if (subjectCtx && typeof Chart !== 'undefined') {
+    const subjectLabels = Object.keys(subjectData);
+    const presentData = subjectLabels.map(s => subjectData[s].present);
+    const absentData = subjectLabels.map(s => subjectData[s].absent);
+    
+    new Chart(subjectCtx, {
+      type: 'bar',
+      data: {
+        labels: subjectLabels,
+        datasets: [
+          {
+            label: 'Present',
+            data: presentData,
+            backgroundColor: 'rgba(16, 185, 129, 0.8)',
+            borderRadius: 6
+          },
+          {
+            label: 'Absent',
+            data: absentData,
+            backgroundColor: 'rgba(239, 68, 68, 0.8)',
+            borderRadius: 6
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'top',
+            labels: { padding: 15, usePointStyle: true, pointStyle: 'circle' }
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            grid: { color: 'rgba(0,0,0,0.05)' }
+          },
+          x: {
+            grid: { display: false }
+          }
+        }
+      }
+    });
+    console.log('Subject chart created');
+  } else {
+    console.error('Subject chart canvas not found or Chart.js not loaded');
+  }
+});
+
+// Search function
+function searchReport(query) {
+  query = query.toLowerCase().trim();
+  document.querySelectorAll('#reportBody tr').forEach(row => {
+    if (!row.dataset.name) return; // Skip empty state row
+    const name = row.dataset.name || '';
+    const subject = row.dataset.subject || '';
+    const matches = name.includes(query) || subject.includes(query);
+    row.classList.toggle('filtered-out', !matches);
+  });
+}
+
+// Filter function
+function filterReport(category, chip) {
+  document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+  chip.classList.add('active');
+  
+  document.querySelectorAll('#reportBody tr').forEach(row => {
+    if (!row.dataset.category) return; // Skip empty state row
+    if (category === 'all') {
+      row.classList.remove('filtered-out');
+    } else {
+      row.classList.toggle('filtered-out', row.dataset.category !== category);
+    }
+  });
+}
+
+// Sort function
+let sortDirection = {};
+function sortTable(colIndex) {
+  const tbody = document.getElementById('reportBody');
+  const rows = Array.from(tbody.querySelectorAll('tr')).filter(r => r.dataset.name);
+  
+  sortDirection[colIndex] = !sortDirection[colIndex];
+  const dir = sortDirection[colIndex] ? 1 : -1;
+  
+  rows.sort((a, b) => {
+    let aVal, bVal;
+    if (colIndex === 5) {
+      aVal = parseFloat(a.dataset.pct) || 0;
+      bVal = parseFloat(b.dataset.pct) || 0;
+    } else if (colIndex === 0) {
+      aVal = a.dataset.name || '';
+      bVal = b.dataset.name || '';
+    } else if (colIndex === 1) {
+      aVal = a.dataset.subject || '';
+      bVal = b.dataset.subject || '';
+    } else {
+      aVal = a.cells[colIndex]?.textContent || '';
+      bVal = b.cells[colIndex]?.textContent || '';
+    }
+    
+    if (typeof aVal === 'number' && typeof bVal === 'number') {
+      return (aVal - bVal) * dir;
+    }
+    return String(aVal).localeCompare(String(bVal)) * dir;
+  });
+  
+  rows.forEach(row => tbody.appendChild(row));
+  
+  document.querySelectorAll('.sortable').forEach((th, i) => {
+    th.classList.toggle('sorted', i === colIndex);
+  });
+}
+</script>
+{% endblock %}

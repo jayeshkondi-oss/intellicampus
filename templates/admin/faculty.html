@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block title %}Faculty — IntelliCampus{% endblock %}
+{% block page_title %}Faculty Management{% endblock %}
+{% block page_subtitle %}Manage teaching staff, branches and subject assignments{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div class="page-header-left">
+    <h2>All Faculty</h2>
+    <p>{{ faculty|length }} members registered</p>
+  </div>
+  <a href="{{ url_for('admin.add_faculty') }}" class="btn btn-primary">
+    <i class="fas fa-user-plus"></i> Add Faculty
+  </a>
+</div>
+<div class="card">
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Employee ID</th>
+          <th>Name</th>
+          <th>Branch</th>
+          <th>Designation</th>
+          <th>Subjects</th>
+          <th>Email</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for f in faculty %}
+      <tr>
+        <td><span class="badge badge-blue">{{ f.employee_id }}</span></td>
+        <td class="td-bold">{{ f.full_name }}</td>
+        <td>
+          <span class="badge badge-dark">{{ f.dept_name }}</span>
+        </td>
+        <td class="text-muted text-small">{{ f.designation or '—' }}</td>
+        <td>
+          {% if f.subject_count > 0 %}
+          <span class="badge badge-green">{{ f.subject_count }} subject(s)</span>
+          {% else %}
+          <span class="badge badge-gray">None assigned</span>
+          {% endif %}
+        </td>
+        <td class="text-muted text-small">{{ f.email }}</td>
+        <td>
+          {% if f.is_active %}
+          <span class="badge badge-green">Active</span>
+          {% else %}
+          <span class="badge badge-red">Inactive</span>
+          {% endif %}
+        </td>
+        <td>
+          <div style="display: flex; gap: 8px;">
+            <a href="{{ url_for('admin.edit_faculty', tid=f.tid) }}" class="btn btn-outline btn-sm">
+              <i class="fas fa-pen"></i> Edit
+            </a>
+            <form method="POST" action="{{ url_for('admin.delete_faculty', tid=f.tid) }}" style="margin: 0;">
+              <button type="submit" class="btn btn-outline btn-sm" style="color:var(--red); border-color:var(--red-light); background:rgba(255,59,48,0.05);" onclick="return confirm('Are you sure you want to permanently delete this faculty member? Their assignments and timetables will be removed.')">
+                <i class="fas fa-trash"></i>
+              </button>
+            </form>
+          </div>
+        </td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="8">
+          <div class="empty-state">
+            <div class="empty-icon">&#128104;&#8205;&#127979;</div>
+            <h3>No faculty added yet</h3>
+            <p><a href="{{ url_for('admin.add_faculty') }}" style="color:var(--blue)">Add the first faculty member</a></p>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

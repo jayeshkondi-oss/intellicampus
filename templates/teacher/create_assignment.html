@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Create Assignment — IntelliCampus{% endblock %}
+{% block page_title %}Create Assignment{% endblock %}
+{% block content %}
+<div style="max-width:660px">
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">New Assignment</span>
+      <a href="{{ url_for('teacher.assignments') }}" class="btn btn-ghost btn-sm"><i class="fas fa-arrow-left"></i> Back</a>
+    </div>
+    <div class="card-body">
+      {% if error %}<div class="alert alert-danger">{{ error }}</div>{% endif %}
+      <form method="POST">
+        <div class="form-group mb-2"><label class="form-label">Title *</label><input type="text" name="title" class="form-control" required></div>
+        <div class="form-group mb-2"><label class="form-label">Description</label><textarea name="description" class="form-control" rows="3"></textarea></div>
+        <div class="form-grid mb-2">
+          <div class="form-group">
+            <label class="form-label">Subject *</label>
+            <select name="subject_id" class="form-control" required>
+              <option value="">Select</option>
+              {% for s in subjects %}<option value="{{ s.id }}">{{ s.name }}</option>{% endfor %}
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Department *</label>
+            <select name="department_id" class="form-control" required>
+              <option value="">Select</option>
+              {% for d in depts %}<option value="{{ d.id }}">{{ d.name }}</option>{% endfor %}
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Semester *</label>
+            <select name="semester" class="form-control" required>
+              {% for s in range(1,9) %}<option value="{{ s }}">Sem {{ s }}</option>{% endfor %}
+            </select>
+          </div>
+          <div class="form-group"><label class="form-label">Max Marks</label><input type="number" name="max_marks" class="form-control" value="10" min="1"></div>
+          <div class="form-group" style="grid-column:1/-1"><label class="form-label">Due Date & Time *</label><input type="datetime-local" name="due_date" class="form-control" required></div>
+        </div>
+        <div style="display:flex;gap:10px">
+          <button type="submit" class="btn btn-primary">Create Assignment</button>
+          <a href="{{ url_for('teacher.assignments') }}" class="btn btn-ghost">Cancel</a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

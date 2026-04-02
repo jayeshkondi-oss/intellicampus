@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Enter Marks — IntelliCampus{% endblock %}
+{% block page_title %}Enter Marks{% endblock %}
+{% block content %}
+<div style="max-width:800px">
+  <div class="card mb-2">
+    <div class="card-body" style="display:flex;gap:20px;flex-wrap:wrap">
+      <div><div class="stat-label">Exam</div><div class="fw-600">{{ exam.name }}</div></div>
+      <div><div class="stat-label">Subject</div><div class="fw-600">{{ exam.sub_name }}</div></div>
+      <div><div class="stat-label">Max Marks</div><div class="fw-600">{{ exam.max_marks }}</div></div>
+      <div><div class="stat-label">Semester</div><div class="fw-600">Sem {{ exam.semester }}</div></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-header"><span class="card-title">Student Marks</span></div>
+    <form method="POST">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Roll No</th><th>Student</th><th>Marks (/ {{ exam.max_marks }})</th><th>Grade</th></tr></thead>
+          <tbody>
+          {% for st in students %}
+          <tr>
+            <td><span class="badge badge-blue">{{ st.roll_number }}</span></td>
+            <td class="fw-600">{{ st.full_name }}</td>
+            <td><input type="number" name="marks_{{ st.id }}" class="form-control" style="width:100px" value="{{ st.marks_obtained }}" min="0" max="{{ exam.max_marks }}" step="0.5"></td>
+            <td>
+              <select name="grade_{{ st.id }}" class="form-control" style="width:80px">
+                <option value="">—</option>
+                {% for g in ['O','A+','A','B+','B','C','D','F'] %}<option value="{{ g }}" {% if st.grade==g %}selected{% endif %}>{{ g }}</option>{% endfor %}
+              </select>
+            </td>
+          </tr>
+          {% else %}
+          <tr><td colspan="4" class="text-center text-muted" style="padding:24px">No students found</td></tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <div class="card-footer">
+        <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Save Marks</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

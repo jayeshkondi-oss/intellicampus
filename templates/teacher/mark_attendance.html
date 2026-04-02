@@ -1,0 +1,775 @@
+{% extends "base.html" %}
+{% block title %}Mark Attendance — IntelliCampus{% endblock %}
+{% block page_title %}Mark Attendance{% endblock %}
+{% block page_subtitle %}Interactive attendance marking system{% endblock %}
+
+{% block extra_css %}
+<style>
+/* Enhanced Attendance Marking Styles */
+.att-setup-panel {
+  background: var(--surface);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  margin-bottom: 24px;
+  overflow: hidden;
+}
+.att-setup-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 700;
+}
+.att-setup-header i { color: var(--blue); }
+.att-setup-body {
+  padding: 20px;
+}
+.att-setup-form {
+  display: flex;
+  gap: 16px;
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+.att-setup-form .form-group {
+  flex: 1;
+  min-width: 200px;
+  margin: 0;
+}
+.att-setup-form .form-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-3);
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.att-setup-form .form-control {
+  padding: 12px 14px;
+  border-radius: 10px;
+  font-size: 0.9rem;
+}
+.att-session-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, var(--blue-light), #dbeafe);
+  border: 1px solid var(--blue);
+  border-radius: 10px;
+  margin-top: 16px;
+}
+.att-session-badge i {
+  color: var(--blue);
+  font-size: 1.1rem;
+}
+.att-session-badge .session-info {
+  font-size: 0.85rem;
+}
+.att-session-badge .session-info strong {
+  color: var(--text-1);
+}
+
+/* Live Stats Cards */
+.att-live-stats {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 12px;
+  margin-bottom: 24px;
+}
+@media (max-width: 900px) { .att-live-stats { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 600px) { .att-live-stats { grid-template-columns: repeat(2, 1fr); } }
+
+.att-live-card {
+  background: var(--surface);
+  border-radius: 12px;
+  padding: 16px;
+  text-align: center;
+  border: 2px solid var(--border);
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+.att-live-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow);
+}
+.att-live-card.active {
+  border-color: var(--blue);
+  background: var(--blue-light);
+}
+.att-live-card.total { border-top: 3px solid var(--blue); }
+.att-live-card.present { border-top: 3px solid var(--green); }
+.att-live-card.absent { border-top: 3px solid var(--red); }
+.att-live-card.late { border-top: 3px solid var(--amber); }
+.att-live-card.unmarked { border-top: 3px solid var(--text-4); }
+
+.att-live-value {
+  font-size: 1.8rem;
+  font-weight: 800;
+  line-height: 1;
+}
+.att-live-card.total .att-live-value { color: var(--blue); }
+.att-live-card.present .att-live-value { color: var(--green); }
+.att-live-card.absent .att-live-value { color: var(--red); }
+.att-live-card.late .att-live-value { color: var(--amber); }
+.att-live-card.unmarked .att-live-value { color: var(--text-4); }
+
+.att-live-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--text-3);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-top: 4px;
+}
+.att-live-pct {
+  font-size: 0.75rem;
+  font-weight: 600;
+  margin-top: 6px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  display: inline-block;
+}
+.att-live-card.present .att-live-pct { background: var(--green-light); color: var(--green); }
+.att-live-card.absent .att-live-pct { background: var(--red-light); color: var(--red); }
+
+/* Progress Ring */
+.att-progress-ring {
+  width: 80px;
+  height: 80px;
+  margin: 0 auto 8px;
+  position: relative;
+}
+.att-progress-ring svg {
+  transform: rotate(-90deg);
+}
+.att-progress-ring circle {
+  fill: none;
+  stroke-width: 8;
+  stroke-linecap: round;
+}
+.att-progress-ring .bg { stroke: var(--surface2); }
+.att-progress-ring .progress { stroke: var(--green); transition: stroke-dashoffset 0.5s ease; }
+.att-ring-text {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: var(--green);
+}
+
+/* Sheet Container */
+.att-sheet-container {
+  background: var(--surface);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+.att-sheet-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.att-sheet-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 700;
+}
+.att-sheet-title i { color: var(--purple); }
+.att-sheet-meta {
+  font-size: 0.78rem;
+  color: var(--text-3);
+}
+.att-sheet-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.att-quick-btn {
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.att-quick-btn:hover {
+  background: var(--surface2);
+}
+.att-quick-btn.present-all:hover { background: var(--green-light); border-color: var(--green); color: var(--green); }
+.att-quick-btn.absent-all:hover { background: var(--red-light); border-color: var(--red); color: var(--red); }
+.att-quick-btn.save {
+  background: var(--blue);
+  color: white;
+  border-color: var(--blue);
+}
+.att-quick-btn.save:hover {
+  background: var(--gold-dark);
+}
+
+/* Search & Filter Bar */
+.att-toolbar {
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.att-search {
+  flex: 1;
+  min-width: 200px;
+  position: relative;
+}
+.att-search input {
+  width: 100%;
+  padding: 10px 14px 10px 38px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 0.85rem;
+  background: var(--surface2);
+}
+.att-search input:focus {
+  outline: none;
+  border-color: var(--blue);
+  background: var(--surface);
+}
+.att-search i {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-4);
+}
+.att-filter-chips {
+  display: flex;
+  gap: 8px;
+}
+.att-chip {
+  padding: 6px 12px;
+  border-radius: 20px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.att-chip:hover, .att-chip.active {
+  background: var(--blue);
+  color: white;
+  border-color: var(--blue);
+}
+
+/* Student List */
+.att-student-list {
+  max-height: 500px;
+  overflow-y: auto;
+}
+.att-student-row {
+  display: flex;
+  align-items: center;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--border);
+  transition: background 0.2s;
+  gap: 16px;
+}
+.att-student-row:last-child { border-bottom: none; }
+.att-student-row:hover { background: var(--surface2); }
+.att-student-row.filtered-out { display: none; }
+
+.att-student-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--blue), var(--purple));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 700;
+  font-size: 0.9rem;
+  flex-shrink: 0;
+}
+.att-student-info {
+  flex: 1;
+  min-width: 0;
+}
+.att-student-name {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--text-1);
+}
+.att-student-roll {
+  font-size: 0.75rem;
+  color: var(--text-3);
+  font-family: var(--font-mono);
+}
+
+/* Interactive Status Pills */
+.att-status-pills {
+  display: flex;
+  gap: 8px;
+}
+.att-pill {
+  position: relative;
+  cursor: pointer;
+}
+.att-pill input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+.att-pill-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 24px;
+  border: 2px solid var(--border);
+  font-size: 0.78rem;
+  font-weight: 600;
+  transition: all 0.2s;
+  background: var(--surface);
+}
+.att-pill-label i {
+  font-size: 0.85rem;
+}
+.att-pill input:checked + .att-pill-label.present {
+  background: var(--green);
+  color: white;
+  border-color: var(--green);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+.att-pill input:checked + .att-pill-label.absent {
+  background: var(--red);
+  color: white;
+  border-color: var(--red);
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+}
+.att-pill input:checked + .att-pill-label.late {
+  background: var(--amber);
+  color: white;
+  border-color: var(--amber);
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+}
+.att-pill-label:hover {
+  transform: scale(1.05);
+}
+.att-pill-label.present:hover { border-color: var(--green); background: var(--green-light); }
+.att-pill-label.absent:hover { border-color: var(--red); background: var(--red-light); }
+.att-pill-label.late:hover { border-color: var(--amber); background: var(--amber-light); }
+
+/* Keyboard hints */
+.att-keyboard-hint {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  background: var(--navy);
+  color: white;
+  padding: 12px 16px;
+  border-radius: 10px;
+  font-size: 0.75rem;
+  display: flex;
+  gap: 16px;
+  box-shadow: var(--shadow-md);
+  z-index: 100;
+}
+.att-key {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.att-key kbd {
+  padding: 2px 8px;
+  background: rgba(255,255,255,0.2);
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+}
+
+/* Animation */
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+.pulse { animation: pulse 0.3s ease; }
+
+/* Empty State */
+.att-empty {
+  padding: 60px 20px;
+  text-align: center;
+}
+.att-empty-icon {
+  font-size: 4rem;
+  margin-bottom: 16px;
+}
+.att-empty h3 {
+  font-size: 1.2rem;
+  margin-bottom: 8px;
+}
+.att-empty p {
+  color: var(--text-3);
+  font-size: 0.9rem;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Session Setup Panel -->
+<div class="att-setup-panel fade-in">
+  <div class="att-setup-header">
+    <i class="fas fa-sliders"></i>
+    Session Setup
+  </div>
+  <div class="att-setup-body">
+    <form method="GET" class="att-setup-form">
+      <div class="form-group">
+        <label class="form-label">Subject</label>
+        <select name="subject_id" class="form-control" required>
+          <option value="">Select Subject</option>
+          {% for s in subjects %}
+          <option value="{{ s.id }}" {% if selected_sub == s.id|string %}selected{% endif %}>
+            {{ s.name }} ({{ s.code }})
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Date</label>
+        <input type="date" name="date" class="form-control" value="{{ selected_date or '' }}">
+      </div>
+      <button type="submit" class="btn btn-primary">
+        <i class="fas fa-clipboard-list"></i> Load Students
+      </button>
+    </form>
+
+    {% if selected_subject %}
+    <div class="att-session-badge">
+      <i class="fas fa-check-circle"></i>
+      <div class="session-info">
+        <strong>{{ selected_subject.name }}</strong> &bull; 
+        {{ selected_subject.dept_name }} &bull; 
+        Semester {{ selected_subject.semester }} &bull; 
+        <span style="color: var(--blue);">{{ selected_date }}</span>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+{% if students %}
+{% set ns = namespace(p=0,a=0,l=0,u=0,t=0) %}
+{% for st in students %}
+  {% set ns.t = ns.t + 1 %}
+  {% if st.existing_status == 'Present' %}{% set ns.p = ns.p + 1 %}
+  {% elif st.existing_status == 'Absent' %}{% set ns.a = ns.a + 1 %}
+  {% elif st.existing_status == 'Late' %}{% set ns.l = ns.l + 1 %}
+  {% else %}{% set ns.u = ns.u + 1 %}{% endif %}
+{% endfor %}
+{% set p_pct = (ns.p * 100 / ns.t)|round(1) if ns.t else 0 %}
+{% set a_pct = (ns.a * 100 / ns.t)|round(1) if ns.t else 0 %}
+
+<!-- Live Stats -->
+<div class="att-live-stats">
+  <div class="att-live-card total fade-in" onclick="filterStudents('all')">
+    <div class="att-live-value" id="stat-total">{{ ns.t }}</div>
+    <div class="att-live-label">Total Students</div>
+  </div>
+  <div class="att-live-card present fade-in" onclick="filterStudents('present')">
+    <div class="att-progress-ring">
+      <svg width="80" height="80">
+        <circle class="bg" cx="40" cy="40" r="35"/>
+        <circle class="progress" cx="40" cy="40" r="35" 
+                stroke-dasharray="220" 
+                stroke-dashoffset="{{ 220 - (220 * p_pct / 100) }}" id="present-ring"/>
+      </svg>
+      <div class="att-ring-text" id="stat-present-pct">{{ p_pct|round|int }}%</div>
+    </div>
+    <div class="att-live-value" id="stat-present">{{ ns.p }}</div>
+    <div class="att-live-label">Present</div>
+  </div>
+  <div class="att-live-card absent fade-in" onclick="filterStudents('absent')">
+    <div class="att-live-value" id="stat-absent">{{ ns.a }}</div>
+    <div class="att-live-label">Absent</div>
+    <div class="att-live-pct" id="stat-absent-pct">{{ a_pct|round|int }}%</div>
+  </div>
+  <div class="att-live-card late fade-in" onclick="filterStudents('late')">
+    <div class="att-live-value" id="stat-late">{{ ns.l }}</div>
+    <div class="att-live-label">Late</div>
+  </div>
+  <div class="att-live-card unmarked fade-in" onclick="filterStudents('unmarked')">
+    <div class="att-live-value" id="stat-unmarked">{{ ns.u }}</div>
+    <div class="att-live-label">Unmarked</div>
+  </div>
+</div>
+
+<!-- Attendance Sheet -->
+<form method="POST" id="attendanceForm" class="att-sheet-container fade-in">
+  <input type="hidden" name="subject_id" value="{{ selected_sub }}">
+  <input type="hidden" name="date" value="{{ selected_date }}">
+  
+  <div class="att-sheet-header">
+    <div>
+      <div class="att-sheet-title">
+        <i class="fas fa-users"></i>
+        Attendance Sheet
+      </div>
+      <div class="att-sheet-meta">
+        {{ selected_subject.code }} &bull; {{ selected_subject.name }} &bull; {{ selected_date }}
+      </div>
+    </div>
+    <div class="att-sheet-actions">
+      <button type="button" onclick="markAll('Present')" class="att-quick-btn present-all">
+        <i class="fas fa-check-double"></i> All Present
+      </button>
+      <button type="button" onclick="markAll('Absent')" class="att-quick-btn absent-all">
+        <i class="fas fa-xmark"></i> All Absent
+      </button>
+      <button type="submit" class="att-quick-btn save">
+        <i class="fas fa-save"></i> Save Attendance
+      </button>
+    </div>
+  </div>
+  
+  <div class="att-toolbar">
+    <div class="att-search">
+      <i class="fas fa-search"></i>
+      <input type="text" id="studentSearch" placeholder="Search by name or roll number..." oninput="searchStudents(this.value)">
+    </div>
+    <div class="att-filter-chips">
+      <span class="att-chip active" onclick="filterStudents('all', this)">All</span>
+      <span class="att-chip" onclick="filterStudents('present', this)">Present</span>
+      <span class="att-chip" onclick="filterStudents('absent', this)">Absent</span>
+      <span class="att-chip" onclick="filterStudents('late', this)">Late</span>
+      <span class="att-chip" onclick="filterStudents('unmarked', this)">Unmarked</span>
+    </div>
+  </div>
+  
+  <div class="att-student-list" id="studentList">
+    {% for st in students %}
+    <div class="att-student-row" 
+         data-name="{{ st.full_name|lower }}" 
+         data-roll="{{ st.roll_number|lower }}"
+         data-status="{{ st.existing_status|lower if st.existing_status else 'unmarked' }}">
+      <div class="att-student-avatar">{{ st.full_name[0] }}</div>
+      <div class="att-student-info">
+        <div class="att-student-name">{{ st.full_name }}</div>
+        <div class="att-student-roll">{{ st.roll_number }}</div>
+      </div>
+      <div class="att-status-pills">
+        <label class="att-pill">
+          <input type="radio" name="status_{{ st.id }}" value="Present"
+            {% if st.existing_status == 'Present' %}checked
+            {% elif not st.existing_status %}checked{% endif %}
+            onchange="updateStats()">
+          <span class="att-pill-label present">
+            <i class="fas fa-check"></i> Present
+          </span>
+        </label>
+        <label class="att-pill">
+          <input type="radio" name="status_{{ st.id }}" value="Absent"
+            {% if st.existing_status == 'Absent' %}checked{% endif %}
+            onchange="updateStats()">
+          <span class="att-pill-label absent">
+            <i class="fas fa-xmark"></i> Absent
+          </span>
+        </label>
+        <label class="att-pill">
+          <input type="radio" name="status_{{ st.id }}" value="Late"
+            {% if st.existing_status == 'Late' %}checked{% endif %}
+            onchange="updateStats()">
+          <span class="att-pill-label late">
+            <i class="fas fa-clock"></i> Late
+          </span>
+        </label>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</form>
+
+<!-- Keyboard Hints -->
+<div class="att-keyboard-hint">
+  <span class="att-key"><kbd>P</kbd> Present</span>
+  <span class="att-key"><kbd>A</kbd> Absent</span>
+  <span class="att-key"><kbd>L</kbd> Late</span>
+  <span class="att-key"><kbd>↑↓</kbd> Navigate</span>
+  <span class="att-key"><kbd>Ctrl+S</kbd> Save</span>
+</div>
+
+{% elif selected_sub %}
+<div class="att-sheet-container">
+  <div class="att-empty">
+    <div class="att-empty-icon">👥</div>
+    <h3>No Students Found</h3>
+    <p>No students are enrolled in this subject's department and semester.</p>
+  </div>
+</div>
+{% else %}
+<div class="att-sheet-container">
+  <div class="att-empty">
+    <div class="att-empty-icon">📋</div>
+    <h3>Select a Subject to Begin</h3>
+    <p>Choose a subject and date above to start marking attendance.</p>
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let currentRowIndex = -1;
+const totalStudents = {{ students|length if students else 0 }};
+
+function markAll(status) {
+  document.querySelectorAll('.att-student-row').forEach(row => {
+    const radio = row.querySelector(`input[value="${status}"]`);
+    if (radio) {
+      radio.checked = true;
+      row.dataset.status = status.toLowerCase();
+    }
+  });
+  updateStats();
+  
+  // Pulse animation on stat card
+  const card = document.querySelector(`.att-live-card.${status.toLowerCase()}`);
+  if (card) {
+    card.classList.add('pulse');
+    setTimeout(() => card.classList.remove('pulse'), 300);
+  }
+}
+
+function updateStats() {
+  let present = 0, absent = 0, late = 0, unmarked = 0;
+  
+  document.querySelectorAll('.att-student-row').forEach(row => {
+    const checked = row.querySelector('input:checked');
+    if (checked) {
+      const status = checked.value.toLowerCase();
+      row.dataset.status = status;
+      if (status === 'present') present++;
+      else if (status === 'absent') absent++;
+      else if (status === 'late') late++;
+    } else {
+      row.dataset.status = 'unmarked';
+      unmarked++;
+    }
+  });
+  
+  const total = present + absent + late + unmarked;
+  const pPct = total ? Math.round(present * 100 / total) : 0;
+  const aPct = total ? Math.round(absent * 100 / total) : 0;
+  
+  document.getElementById('stat-present').textContent = present;
+  document.getElementById('stat-absent').textContent = absent;
+  document.getElementById('stat-late').textContent = late;
+  document.getElementById('stat-unmarked').textContent = unmarked;
+  document.getElementById('stat-present-pct').textContent = pPct + '%';
+  document.getElementById('stat-absent-pct').textContent = aPct + '%';
+  
+  // Update ring
+  const ring = document.getElementById('present-ring');
+  if (ring) {
+    ring.style.strokeDashoffset = 220 - (220 * pPct / 100);
+  }
+}
+
+function searchStudents(query) {
+  query = query.toLowerCase().trim();
+  document.querySelectorAll('.att-student-row').forEach(row => {
+    const name = row.dataset.name;
+    const roll = row.dataset.roll;
+    const matches = name.includes(query) || roll.includes(query);
+    row.classList.toggle('filtered-out', !matches);
+  });
+}
+
+function filterStudents(status, chipEl) {
+  // Update chips
+  document.querySelectorAll('.att-chip').forEach(c => c.classList.remove('active'));
+  if (chipEl) chipEl.classList.add('active');
+  else document.querySelector(`.att-chip`).classList.add('active');
+  
+  // Update cards
+  document.querySelectorAll('.att-live-card').forEach(c => c.classList.remove('active'));
+  const card = document.querySelector(`.att-live-card.${status}`);
+  if (card) card.classList.add('active');
+  
+  document.querySelectorAll('.att-student-row').forEach(row => {
+    if (status === 'all') {
+      row.classList.remove('filtered-out');
+    } else {
+      row.classList.toggle('filtered-out', row.dataset.status !== status);
+    }
+  });
+}
+
+// Keyboard navigation
+document.addEventListener('keydown', function(e) {
+  // Ctrl+S to save
+  if (e.ctrlKey && e.key === 's') {
+    e.preventDefault();
+    document.getElementById('attendanceForm')?.submit();
+    return;
+  }
+  
+  // Don't interfere with search input
+  if (document.activeElement.tagName === 'INPUT') return;
+  
+  const rows = Array.from(document.querySelectorAll('.att-student-row:not(.filtered-out)'));
+  if (rows.length === 0) return;
+  
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    currentRowIndex = Math.min(currentRowIndex + 1, rows.length - 1);
+    highlightRow(rows[currentRowIndex]);
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    currentRowIndex = Math.max(currentRowIndex - 1, 0);
+    highlightRow(rows[currentRowIndex]);
+  } else if (currentRowIndex >= 0 && currentRowIndex < rows.length) {
+    const row = rows[currentRowIndex];
+    let status = null;
+    if (e.key === 'p' || e.key === 'P') status = 'Present';
+    else if (e.key === 'a' || e.key === 'A') status = 'Absent';
+    else if (e.key === 'l' || e.key === 'L') status = 'Late';
+    
+    if (status) {
+      const radio = row.querySelector(`input[value="${status}"]`);
+      if (radio) {
+        radio.checked = true;
+        updateStats();
+      }
+    }
+  }
+});
+
+function highlightRow(row) {
+  document.querySelectorAll('.att-student-row').forEach(r => r.style.background = '');
+  if (row) {
+    row.style.background = 'var(--blue-light)';
+    row.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+}
+
+// Initialize
+document.addEventListener('DOMContentLoaded', function() {
+  updateStats();
+});
+</script>
+{% endblock %}

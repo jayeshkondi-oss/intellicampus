@@ -1,0 +1,225 @@
+{% extends "base.html" %}
+{% block title %}Edit Faculty — IntelliCampus{% endblock %}
+{% block page_title %}Edit Faculty{% endblock %}
+{% block page_subtitle %}Update details and subject assignments{% endblock %}
+{% block content %}
+<div style="max-width:860px">
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">
+        <i class="fas fa-user-edit" style="color:var(--blue)"></i>
+        Edit Faculty — {{ faculty.full_name }}
+      </span>
+      <a href="{{ url_for('admin.faculty') }}" class="btn btn-ghost btn-sm">
+        <i class="fas fa-arrow-left"></i> Back
+      </a>
+    </div>
+    <div class="card-body">
+      {% if error %}<div class="alert alert-danger"><i class="fas fa-circle-exclamation"></i> {{ error }}</div>{% endif %}
+      {% if success %}<div class="alert alert-success"><i class="fas fa-check-circle"></i> {{ success }}</div>{% endif %}
+
+      <form method="POST">
+
+        <div class="section-title" style="margin-bottom:14px">Account Details</div>
+        <div class="form-grid mb-3">
+          <div class="form-group">
+            <label class="form-label">Full Name *</label>
+            <input type="text" name="full_name" class="form-control" value="{{ faculty.full_name }}" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Email *</label>
+            <input type="email" name="email" class="form-control" value="{{ faculty.email }}" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Phone</label>
+            <input type="text" name="phone" class="form-control" value="{{ faculty.phone or '' }}">
+          </div>
+          <div class="form-group">
+            <label class="form-label">New Password <span style="color:var(--text-4);font-weight:400">(leave blank to keep)</span></label>
+            <input type="password" name="password" class="form-control" placeholder="Enter new password" minlength="8">
+          </div>
+        </div>
+
+        <div class="section-title" style="margin-bottom:14px">Professional Details</div>
+        <div class="form-grid mb-3">
+          <div class="form-group">
+            <label class="form-label">Employee ID *</label>
+            <input type="text" name="employee_id" class="form-control" value="{{ faculty.employee_id }}" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Branch *</label>
+            <select name="department_id" id="deptSelect" class="form-control" required onchange="onDeptChange()">
+              <option value="">Select Branch</option>
+              {% for d in depts %}
+              <option value="{{ d.id }}" {% if d.id == faculty.department_id %}selected{% endif %}>{{ d.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Designation</label>
+            <select name="designation" class="form-control">
+              <option value="">Select</option>
+              {% for des in ['Professor','Associate Professor','Assistant Professor','Lecturer','HOD','Lab Assistant'] %}
+              <option {% if faculty.designation == des %}selected{% endif %}>{{ des }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Qualification</label>
+            <input type="text" name="qualification" class="form-control" value="{{ faculty.qualification or '' }}">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Specialization</label>
+            <input type="text" name="specialization" class="form-control" value="{{ faculty.specialization or '' }}">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Joining Date</label>
+            <input type="date" name="joining_date" class="form-control" value="{{ faculty.joining_date or '' }}">
+          </div>
+        </div>
+
+        <!-- Subject Assignment -->
+        <div class="section-title" style="margin-bottom:6px">Subject Assignment</div>
+        <p class="text-muted text-small mb-2">Currently assigned subjects are pre-checked. Update as needed.</p>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:12px;margin-bottom:14px;padding:16px;background:var(--surface2);border-radius:var(--radius-sm);border:1px solid var(--border);align-items:flex-end">
+          <div class="form-group" style="margin:0">
+            <label class="form-label">Year Filter</label>
+            <select id="filterYear" class="form-control" onchange="applyFilters()">
+              <option value="">All Years</option>
+              <option value="1">FE — Year 1</option>
+              <option value="2">SE — Year 2</option>
+              <option value="3">TE — Year 3</option>
+              <option value="4">BE — Year 4</option>
+            </select>
+          </div>
+          <div class="form-group" style="margin:0">
+            <label class="form-label">Semester Filter</label>
+            <select id="filterSem" class="form-control" onchange="applyFilters()">
+              <option value="">All Semesters</option>
+              {% for s in range(1,9) %}
+              <option value="{{ s }}">Semester {{ s }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div></div>
+          <div style="display:flex;gap:8px;padding-bottom:1px">
+            <button type="button" onclick="selectAllVisible()" class="btn btn-outline btn-sm">All</button>
+            <button type="button" onclick="clearAll()" class="btn btn-ghost btn-sm">Clear</button>
+          </div>
+        </div>
+
+        <div style="border:1.5px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;max-height:360px;overflow-y:auto">
+          <table style="width:100%;border-collapse:collapse">
+            <thead style="position:sticky;top:0;z-index:2">
+              <tr style="background:var(--surface2)">
+                <th style="padding:9px 14px;width:42px;border-bottom:1px solid var(--border)">
+                  <input type="checkbox" id="checkAll" onchange="toggleAll(this)"
+                         style="width:15px;height:15px;accent-color:var(--blue);cursor:pointer">
+                </th>
+                <th style="padding:9px 14px;font-size:.65rem;font-weight:800;color:var(--text-3);text-transform:uppercase;border-bottom:1px solid var(--border)">Subject</th>
+                <th style="padding:9px 14px;font-size:.65rem;font-weight:800;color:var(--text-3);text-transform:uppercase;border-bottom:1px solid var(--border)">Code</th>
+                <th style="padding:9px 14px;font-size:.65rem;font-weight:800;color:var(--text-3);text-transform:uppercase;border-bottom:1px solid var(--border)">Yr</th>
+                <th style="padding:9px 14px;font-size:.65rem;font-weight:800;color:var(--text-3);text-transform:uppercase;border-bottom:1px solid var(--border)">Sem</th>
+                <th style="padding:9px 14px;font-size:.65rem;font-weight:800;color:var(--text-3);text-transform:uppercase;border-bottom:1px solid var(--border)">Type</th>
+              </tr>
+            </thead>
+            <tbody id="subjectTbody">
+            {% for s in subjects %}
+            <tr class="sub-row"
+                data-dept="{{ s.department_id }}"
+                data-year="{{ s.year }}"
+                data-sem="{{ s.semester }}"
+                style="border-bottom:1px solid var(--border)">
+              <td style="padding:9px 14px">
+                <input type="checkbox"
+                       name="subject_ids"
+                       value="{{ s.id }}"
+                       id="sub{{ s.id }}"
+                       class="sub-check"
+                       {% if s.id in assigned_ids %}checked{% endif %}
+                       onchange="updateCount()"
+                       style="width:15px;height:15px;accent-color:var(--blue);cursor:pointer">
+              </td>
+              <td style="padding:9px 14px">
+                <label for="sub{{ s.id }}" style="font-weight:600;color:var(--text-1);font-size:.82rem;cursor:pointer">{{ s.name }}</label>
+              </td>
+              <td style="padding:9px 14px"><span class="badge badge-blue">{{ s.code }}</span></td>
+              <td style="padding:9px 14px"><span class="badge badge-gray">Yr {{ s.year }}</span></td>
+              <td style="padding:9px 14px"><span class="badge badge-green">Sem {{ s.semester }}</span></td>
+              <td style="padding:9px 14px">
+                <span class="badge {% if s.subject_type=='Practical' %}badge-amber{% elif s.subject_type=='Elective' %}badge-purple{% else %}badge-teal{% endif %}">{{ s.subject_type }}</span>
+              </td>
+            </tr>
+            {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px">
+          <div id="selectedCount" style="font-size:.76rem;color:var(--text-3);font-weight:600">Loading...</div>
+          <div id="visibleCount" style="font-size:.72rem;color:var(--text-4)"></div>
+        </div>
+
+        <div style="display:flex;gap:10px;margin-top:22px;padding-top:18px;border-top:1px solid var(--border)">
+          <button type="submit" class="btn btn-primary btn-lg"><i class="fas fa-save"></i> Save Changes</button>
+          <a href="{{ url_for('admin.faculty') }}" class="btn btn-ghost btn-lg">Cancel</a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+const currentDept = '{{ faculty.department_id }}';
+
+function onDeptChange() { applyFilters(); }
+
+function applyFilters() {
+  const deptId = document.getElementById('deptSelect').value;
+  const year   = document.getElementById('filterYear').value;
+  const sem    = document.getElementById('filterSem').value;
+  let visible  = 0;
+  document.querySelectorAll('.sub-row').forEach(row => {
+    const match =
+      (!deptId || row.dataset.dept === deptId) &&
+      (!year   || row.dataset.year === year)   &&
+      (!sem    || row.dataset.sem  === sem);
+    row.style.display = match ? '' : 'none';
+    if (match) visible++;
+  });
+  document.getElementById('visibleCount').textContent = visible + ' subjects shown';
+  updateCount();
+}
+
+function selectAllVisible() {
+  document.querySelectorAll('.sub-row').forEach(row => {
+    if (row.style.display !== 'none') row.querySelector('.sub-check').checked = true;
+  });
+  updateCount();
+}
+function clearAll() {
+  document.querySelectorAll('.sub-check').forEach(cb => cb.checked = false);
+  document.getElementById('checkAll').checked = false;
+  updateCount();
+}
+function toggleAll(master) {
+  document.querySelectorAll('.sub-row').forEach(row => {
+    if (row.style.display !== 'none') row.querySelector('.sub-check').checked = master.checked;
+  });
+  updateCount();
+}
+function updateCount() {
+  const n = document.querySelectorAll('.sub-check:checked').length;
+  const el = document.getElementById('selectedCount');
+  el.textContent = n === 0 ? 'No subjects selected' : n + ' subject' + (n>1?'s':'') + ' selected ✓';
+  el.style.color = n > 0 ? 'var(--green)' : 'var(--text-3)';
+}
+
+// Init: filter by faculty's current dept
+window.onload = function() {
+  applyFilters();
+  updateCount();
+};
+</script>
+{% endblock %}

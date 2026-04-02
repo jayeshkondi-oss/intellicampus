@@ -1,0 +1,294 @@
+{% extends "base.html" %}
+{% block title %}Fees Management - IntelliCampus{% endblock %}
+{% block page_title %}Fees Management{% endblock %}
+{% block page_subtitle %}Assign fee records, collect payments, and track outstanding balances{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div class="page-header-left">
+    <h2>Admin Fees Section</h2>
+    <p>{{ total_records }} fee record{{ '' if total_records == 1 else 's' }} in the current view</p>
+  </div>
+  <a href="#assign-fee" class="btn btn-primary"><i class="fas fa-plus"></i> Add Fee Record</a>
+</div>
+
+<div class="stats-grid mb-3">
+  <div class="stat-card red-card fade-in">
+    <div class="stat-icon red"><i class="fas fa-file-invoice-dollar"></i></div>
+    <div>
+      <div class="stat-label">Outstanding Balance</div>
+      <div class="stat-value">&#8377;{{ "{:,.0f}".format(pending_amount) }}</div>
+      <div class="stat-sub">Pending and partial fee records</div>
+    </div>
+  </div>
+  <div class="stat-card green-card fade-in">
+    <div class="stat-icon green"><i class="fas fa-circle-check"></i></div>
+    <div>
+      <div class="stat-label">Collected Amount</div>
+      <div class="stat-value">&#8377;{{ "{:,.0f}".format(collected_amount) }}</div>
+      <div class="stat-sub">Against the visible fee records</div>
+    </div>
+  </div>
+  <div class="stat-card amber-card fade-in">
+    <div class="stat-icon amber"><i class="fas fa-hourglass-half"></i></div>
+    <div>
+      <div class="stat-label">Open Records</div>
+      <div class="stat-value">{{ pending_records }}</div>
+      <div class="stat-sub">Pending or partially paid</div>
+    </div>
+  </div>
+  <div class="stat-card blue-card fade-in">
+    <div class="stat-icon blue"><i class="fas fa-receipt"></i></div>
+    <div>
+      <div class="stat-label">Recent Payments</div>
+      <div class="stat-value">{{ payments|length }}</div>
+      <div class="stat-sub">Latest payment entries shown below</div>
+    </div>
+  </div>
+</div>
+
+<form method="GET" class="card mb-3" style="padding:16px 20px">
+  <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end">
+    <div class="form-group" style="min-width:180px;flex:1;margin:0">
+      <label class="form-label">Department</label>
+      <select name="dept" class="form-control">
+        <option value="">All Departments</option>
+        {% for d in depts %}
+        <option value="{{ d.id }}" {% if filters.dept == d.id|string %}selected{% endif %}>{{ d.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="form-group" style="min-width:180px;flex:1;margin:0">
+      <label class="form-label">Fee Category</label>
+      <select name="category" class="form-control">
+        <option value="">All Categories</option>
+        {% for cat in categories %}
+        <option value="{{ cat.id }}" {% if filters.category == cat.id|string %}selected{% endif %}>{{ cat.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="form-group" style="min-width:160px;flex:1;margin:0">
+      <label class="form-label">Status</label>
+      <select name="status" class="form-control">
+        <option value="">All Statuses</option>
+        {% for opt in ['Pending', 'Partial', 'Paid', 'Waived'] %}
+        <option value="{{ opt }}" {% if filters.status == opt %}selected{% endif %}>{{ opt }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="form-group" style="min-width:220px;flex:2;margin:0">
+      <label class="form-label">Search</label>
+      <input type="text" name="q" class="form-control" placeholder="Student name or roll number" value="{{ filters.q }}">
+    </div>
+    <button type="submit" class="btn btn-primary">Filter</button>
+    <a href="{{ url_for('admin.fees') }}" class="btn btn-ghost">Reset</a>
+  </div>
+</form>
+
+<div class="grid-2 mb-3">
+  <div class="card fade-in" id="assign-fee">
+    <div class="card-header">
+      <span class="card-title"><i class="fas fa-file-circle-plus" style="color:var(--blue)"></i> Assign Fee</span>
+    </div>
+    <div class="card-body">
+      <form method="POST">
+        <input type="hidden" name="action" value="assign_fee">
+        <div class="form-group mb-2">
+          <label class="form-label">Student</label>
+          <select name="student_id" class="form-control" required>
+            <option value="">Select student</option>
+            {% for s in students %}
+            <option value="{{ s.id }}">{{ s.roll_number }} - {{ s.full_name }} ({{ s.dept_code }})</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-group mb-2">
+          <label class="form-label">Fee Category</label>
+          <select name="fee_category_id" class="form-control" required>
+            <option value="">Select category</option>
+            {% for cat in categories %}
+            <option value="{{ cat.id }}">{{ cat.name }} - &#8377;{{ "{:,.0f}".format(cat.amount) }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px" class="mb-2">
+          <div class="form-group" style="margin:0">
+            <label class="form-label">Academic Year</label>
+            <select name="academic_year_id" class="form-control">
+              <option value="">Not specified</option>
+              {% for ay in academic_years %}
+              <option value="{{ ay.id }}">{{ ay.year_label }}{% if ay.is_current %} (Current){% endif %}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="form-group" style="margin:0">
+            <label class="form-label">Amount</label>
+            <input type="number" step="0.01" min="0" name="amount" class="form-control" placeholder="Leave blank for default">
+          </div>
+        </div>
+        <div class="form-group mb-2">
+          <label class="form-label">Due Date</label>
+          <input type="date" name="due_date" class="form-control">
+        </div>
+        <button type="submit" class="btn btn-primary"><i class="fas fa-plus"></i> Save Fee Record</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="card fade-in">
+    <div class="card-header">
+      <span class="card-title"><i class="fas fa-money-bill-wave" style="color:var(--green)"></i> Record Payment</span>
+    </div>
+    <div class="card-body">
+      <form method="POST">
+        <input type="hidden" name="action" value="record_payment">
+        <div class="form-group mb-2">
+          <label class="form-label">Fee Record</label>
+          <select name="fee_id" class="form-control" required>
+            <option value="">Select outstanding fee</option>
+            {% for fee in payable_fees %}
+            <option value="{{ fee.id }}">{{ fee.roll_number }} - {{ fee.full_name }} - {{ fee.cat_name }} (&#8377;{{ "{:,.0f}".format(fee.balance) }} due)</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px" class="mb-2">
+          <div class="form-group" style="margin:0">
+            <label class="form-label">Amount Paid</label>
+            <input type="number" step="0.01" min="0.01" name="amount_paid" class="form-control" placeholder="0.00" required>
+          </div>
+          <div class="form-group" style="margin:0">
+            <label class="form-label">Payment Mode</label>
+            <select name="payment_mode" class="form-control">
+              {% for mode in ['Online', 'Cash', 'DD', 'Cheque'] %}
+              <option value="{{ mode }}">{{ mode }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px" class="mb-2">
+          <div class="form-group" style="margin:0">
+            <label class="form-label">Payment Date</label>
+            <input type="datetime-local" name="payment_date" class="form-control">
+          </div>
+          <div class="form-group" style="margin:0">
+            <label class="form-label">Receipt Number</label>
+            <input type="text" name="receipt_number" class="form-control" placeholder="Auto-generated if blank">
+          </div>
+        </div>
+        <div class="form-group mb-2">
+          <label class="form-label">Transaction Reference</label>
+          <input type="text" name="transaction_id" class="form-control" placeholder="UPI / bank / cheque reference">
+        </div>
+        <button type="submit" class="btn btn-success"><i class="fas fa-check"></i> Record Payment</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div class="card fade-in mb-3">
+  <div class="card-header">
+    <span class="card-title"><i class="fas fa-table-list" style="color:var(--amber)"></i> Fee Records</span>
+    <span class="badge badge-blue">{{ fee_rows|length }} shown</span>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Student</th>
+          <th>Department</th>
+          <th>Category</th>
+          <th>Academic Year</th>
+          <th>Amount</th>
+          <th>Paid</th>
+          <th>Balance</th>
+          <th>Due Date</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for fee in fee_rows %}
+        <tr>
+          <td>
+            <div class="fw-600">{{ fee.full_name }}</div>
+            <div class="text-muted text-small">{{ fee.roll_number }}</div>
+          </td>
+          <td>{{ fee.dept_name }} <span class="badge badge-gray text-tiny">{{ fee.dept_code }}</span></td>
+          <td class="fw-600">{{ fee.cat_name }}</td>
+          <td class="text-muted text-small">{{ fee.year_label or '-' }}</td>
+          <td>&#8377;{{ "{:,.0f}".format(fee.amount) }}</td>
+          <td style="color:var(--green);font-weight:600">&#8377;{{ "{:,.0f}".format(fee.paid_amount) }}</td>
+          <td style="color:var(--red);font-weight:600">&#8377;{{ "{:,.0f}".format(fee.balance) }}</td>
+          <td class="text-small">{{ fee.due_date.strftime('%d %b %Y') if fee.due_date else '-' }}</td>
+          <td>
+            <span class="badge {% if fee.status == 'Paid' %}badge-green{% elif fee.status == 'Pending' %}badge-red{% elif fee.status == 'Partial' %}badge-amber{% elif fee.status == 'Waived' %}badge-purple{% else %}badge-gray{% endif %}">
+              {{ fee.status }}
+            </span>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="9">
+            <div class="empty-state">
+              <div class="empty-icon"><i class="fas fa-file-invoice-dollar"></i></div>
+              <h3>No fee records found</h3>
+              <p>Try different filters or assign a new fee record.</p>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="card fade-in">
+  <div class="card-header">
+    <span class="card-title"><i class="fas fa-clock-rotate-left" style="color:var(--teal)"></i> Recent Payments</span>
+    <span class="badge badge-teal">{{ payments|length }} shown</span>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Student</th>
+          <th>Category</th>
+          <th>Amount</th>
+          <th>Mode</th>
+          <th>Receipt</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for payment in payments %}
+        <tr>
+          <td class="text-small">{{ payment.payment_date.strftime('%d %b %Y, %I:%M %p') if payment.payment_date else '-' }}</td>
+          <td>
+            <div class="fw-600">{{ payment.full_name }}</div>
+            <div class="text-muted text-small">{{ payment.roll_number }} / {{ payment.dept_code }}</div>
+          </td>
+          <td class="fw-600">{{ payment.cat_name }}</td>
+          <td style="color:var(--green);font-weight:700">&#8377;{{ "{:,.0f}".format(payment.amount_paid) }}</td>
+          <td><span class="badge badge-blue">{{ payment.payment_mode }}</span></td>
+          <td class="text-small">{{ payment.receipt_number or '-' }}</td>
+          <td>
+            <span class="badge {% if payment.fee_status == 'Paid' %}badge-green{% elif payment.fee_status == 'Partial' %}badge-amber{% else %}badge-gray{% endif %}">
+              {{ payment.fee_status }}
+            </span>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="7">
+            <div class="empty-state">
+              <div class="empty-icon"><i class="fas fa-receipt"></i></div>
+              <h3>No payments recorded</h3>
+              <p>Recorded payments will appear here.</p>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
