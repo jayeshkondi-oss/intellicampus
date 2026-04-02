@@ -16,13 +16,15 @@ def get_db():
         time_converters[FIELD_TYPE.TIME] = converters.convert_time
         g.db = pymysql.connect(
             host=current_app.config['MYSQL_HOST'],
+            port=int(os.environ.get('MYSQL_PORT', 3306)),   # ← ADD THIS
             user=current_app.config['MYSQL_USER'],
             password=current_app.config['MYSQL_PASSWORD'],
             database=current_app.config['MYSQL_DB'],
             charset='utf8mb4',
             cursorclass=pymysql.cursors.DictCursor,
             autocommit=False,
-            conv=time_converters
+            conv=time_converters,
+            ssl={'ssl': True}    # ← ADD THIS TOO
         )
     return g.db
 
