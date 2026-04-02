@@ -1,22 +1,17 @@
-"""
-Database helper — uses PyMySQL (pure Python, no C compiler needed).
-Provides get_db() which returns a connection with DictCursor.
-"""
 import pymysql
 import pymysql.cursors
 from pymysql import converters
 from pymysql.constants import FIELD_TYPE
 from flask import g, current_app
+import os
 
 def get_db():
-    """Return a per-request PyMySQL connection (stored in Flask's g)."""
     if 'db' not in g:
-        # Treat TIME columns as time-of-day values for template strftime usage.
         time_converters = converters.conversions.copy()
         time_converters[FIELD_TYPE.TIME] = converters.convert_time
         g.db = pymysql.connect(
             host=current_app.config['MYSQL_HOST'],
-            port=int(os.environ.get('MYSQL_PORT', 3306)),   # ← ADD THIS
+            port=int(os.environ.get('MYSQL_PORT', 3306)),
             user=current_app.config['MYSQL_USER'],
             password=current_app.config['MYSQL_PASSWORD'],
             database=current_app.config['MYSQL_DB'],
@@ -24,7 +19,7 @@ def get_db():
             cursorclass=pymysql.cursors.DictCursor,
             autocommit=False,
             conv=time_converters,
-            ssl={'ssl': True}    # ← ADD THIS TOO
+            ssl={'ssl': True}
         )
     return g.db
 
