@@ -50,5 +50,23 @@ def inject_globals():
         now=datetime.datetime.now(),
     )
 
+from flask import make_response
+
+@app.route('/sitemap.xml')
+def sitemap():
+    xml = """<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>https://intellicampus.me/</loc></url>
+  <url><loc>https://intellicampus.me/login</loc></url>
+</urlset>"""
+    response = make_response(xml)
+    response.headers["Content-Type"] = "application/xml"
+    return response
+
+@app.route('/robots.txt')
+def robots():
+    content = "User-agent: *\nAllow: /\nSitemap: https://intellicampus.me/sitemap.xml"
+    return content, 200, {'Content-Type': 'text/plain'}
+
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
