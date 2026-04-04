@@ -66,3 +66,37 @@ def change_password():
             cur2.close()
             success = 'Password changed successfully!'
     return render_template('auth/change_password.html', error=error, success=success)
+
+@auth_bp.route('/signup', methods=['GET', 'POST'])
+def signup():
+    if current_user.is_authenticated:
+        return redirect(url_for(f'{current_user.role}.dashboard'))
+    error = success = None
+    if request.method == 'POST':
+        full_name = request.form.get('full_name', '').strip()
+        email     = request.form.get('email', '').strip().lower()
+        password  = request.form.get('password', '')
+        confirm   = request.form.get('confirm_password', '')
+        phone     = request.form.get('phone', '').strip()
+
+        if not full_name or not email or not password:
+            error = 'All fields are required.'
+        elif password != confirm:
+            error = 'Passwords do not match.'
+        elif len(password) < 8:
+            error = 'Password must be at least 8 characters.'
+        else:
+            db  = get_db()
+            cur = db.cursor()
+            cur.execute("SELECT id FROM users WHERE email=%s", (email,))
+            if cur.fetchone():
+                error = 'Email already registered.'
+            else:
+                cur.execute("""
+                    INSERT INTO users (full_name, email, password_hash, role, phone, is_active)
+                    VALUES (%s, %s, %s, 'admin', %s, 1)
+                """, (full_name, email, generate_password_hash(password), phone))
+                db.commit()
+                cur.close()
+                success = 'Account created! You can now log in.'
+    return render_template('auth/signup.html', error=error, success=success)

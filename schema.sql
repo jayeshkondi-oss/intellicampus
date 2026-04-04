@@ -2,8 +2,6 @@
 --  College ERP System — MySQL Schema
 --  Run: mysql -u root -p < schema.sql
 -- ============================================================
-CREATE DATABASE IF NOT EXISTS college_erp CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-USE college_erp;
 
 CREATE TABLE departments (
     id         INT AUTO_INCREMENT PRIMARY KEY,
